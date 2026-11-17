@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'UPDSonline - Sistema de Consulta Académica')</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --upds-navy: #002244;
+            --upds-primary: #003b73;
+            --upds-blue: #0056b3;
+            --upds-accent: #00a8e8;
+            --upds-bg: #f4f7fb;
+            --upds-card-border: #e2e8f0;
+            --upds-text-dark: #1e293b;
+            --upds-text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--upds-bg);
+            color: var(--upds-text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar UPDS */
+        .upds-navbar {
+            background-color: var(--upds-navy);
+            padding: 0.65rem 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .upds-brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .upds-brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+        }
+
+        .upds-brand-title span {
+            color: var(--upds-accent);
+        }
+
+        .upds-brand-subtitle {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-left: 10px;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255,255,255,0.25);
+            font-weight: 400;
+        }
+
+        /* Nav links */
+        .navbar-nav .nav-link {
+            color: #e2e8f0 !important;
+            font-weight: 500;
+            font-size: 0.92rem;
+            padding: 0.5rem 0.9rem !important;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* User Dropdown Pill */
+        .user-pill {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 4px 14px 4px 8px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .user-pill:hover {
+            background-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--upds-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* KPI Card */
+        .kpi-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--upds-card-border);
+            padding: 1.3rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        }
+
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .kpi-number {
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--upds-navy);
+            line-height: 1.1;
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--upds-text-muted);
+            font-weight: 500;
+        }
+
+        /* Action buttons card */
+        .action-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--upds-card-border);
+            padding: 1rem;
+            text-align: center;
+            text-decoration: none;
+            color: var(--upds-text-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .action-card:hover {
+            border-color: var(--upds-blue);
+            color: var(--upds-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 86, 179, 0.12);
+        }
+
+        .action-icon {
+            font-size: 1.6rem;
+            color: var(--upds-primary);
+        }
+
+        /* Badges */
+        .badge-activo, .badge-aprobada, .badge-validada, .badge-validado, .badge-completada {
+            background-color: #d1fae5;
+            color: #065f46;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        .badge-en_revision, .badge-presentada, .badge-pendiente, .badge-en_proceso {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        .badge-observada, .badge-observado, .badge-rechazada, .badge-rechazado, .badge-cancelada, .badge-abandonada {
+            background-color: #fee2e2;
+            color: #991b1b;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        .badge-en_curso, .badge-en_practica, .badge-planificada {
+            background-color: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        .badge-egresado, .badge-inactiva, .badge-inactivo {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+        }
+
+        /* Demo Role Banner - removed */
+
+        .btn-upds {
+            background-color: var(--upds-primary);
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 18px;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-upds:hover {
+            background-color: var(--upds-blue);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 86, 179, 0.25);
+        }
+
+        footer {
+            margin-top: auto;
+            background: #ffffff;
+            border-top: 1px solid var(--upds-card-border);
+            padding: 1rem 0;
+            font-size: 0.82rem;
+            color: var(--upds-text-muted);
+        }
+    </style>
+    @yield('styles')
+</head>
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg upds-navbar">
+        <div class="container-fluid px-lg-4">
+            <!-- Brand -->
+            <a class="upds-brand-logo" href="{{ route('dashboard') }}">
+                <div class="d-flex align-items-center">
+                    <div class="upds-brand-title">UPDS<span>online</span></div>
+                    <div class="upds-brand-subtitle d-none d-md-block">Sistema de Gestión de Prácticas</div>
+                </div>
+            </a>
+
+            <!-- Mobile toggle -->
+            <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#updsNav">
+                <i class="bi bi-list fs-3"></i>
+            </button>
+
+            <!-- Links -->
+            <div class="collapse navbar-collapse" id="updsNav">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+                            <i class="bi bi-house-door me-1"></i> Inicio
+                        </a>
+                    </li>
+                    @if(auth()->user()->isAdmin())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}" href="{{ route('admin.usuarios.index') }}">
+                                <i class="bi bi-people me-1"></i> Usuarios
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">
+                                <i class="bi bi-shield-check me-1"></i> Roles
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.periodos.*') || request()->routeIs('admin.carreras.*') ? 'active' : '' }}" href="#" id="catalogosDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-collection me-1"></i> Catálogos
+                            </a>
+                            <ul class="dropdown-menu shadow border-0" aria-labelledby="catalogosDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.periodos.index') }}">
+                                        <i class="bi bi-calendar3 me-2 text-info"></i> Períodos Académicos
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.carreras.index') }}">
+                                        <i class="bi bi-journal-bookmark me-2 text-primary"></i> Carreras Universitarias
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('organizaciones.*') ? 'active' : '' }}" href="{{ route('organizaciones.index') }}">
+                                <i class="bi bi-building me-1"></i> Organizaciones
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('reportes.*') ? 'active' : '' }}" href="{{ route('reportes.index') }}">
+                                <i class="bi bi-bar-chart-line me-1"></i> Reportes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.auditoria.*') ? 'active' : '' }}" href="{{ route('admin.auditoria.index') }}">
+                                <i class="bi bi-journal-text me-1"></i> Auditoría
+                            </a>
+                        </li>
+                    @else
+                        @if(auth()->user()->isCoordinador() || auth()->user()->isTutor())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('estudiantes.*') ? 'active' : '' }}" href="{{ route('estudiantes.index') }}">
+                                <i class="bi bi-people me-1"></i> {{ auth()->user()->isTutor() ? 'Mis Estudiantes' : 'Estudiantes' }}
+                            </a>
+                        </li>
+                        @endif
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('organizaciones.*') ? 'active' : '' }}" href="{{ route('organizaciones.index') }}">
+                                <i class="bi bi-building me-1"></i> Organizaciones
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('solicitudes.*') ? 'active' : '' }}" href="{{ route('solicitudes.index') }}">
+                                <i class="bi bi-file-earmark-text me-1"></i> Solicitudes
+                                @php
+                                    $pendientes = 0;
+                                    try {
+                                        if(auth()->user()->isCoordinador()) {
+                                            $pendientes = \App\Models\SolicitudPractica::whereIn('estado', ['presentada','en_revision'])->count();
+                                        } elseif(auth()->user()->isEstudiante()) {
+                                            $pendientes = \App\Models\SolicitudPractica::where('estado','observada')
+                                                ->whereHas('estudiante', fn($q) => $q->where('user_id', auth()->id()))->count();
+                                        }
+                                    } catch(\Exception $e) { $pendientes = 0; }
+                                @endphp
+                                @if($pendientes > 0)
+                                    <span class="badge rounded-pill ms-1" style="background:#ef4444;font-size:0.68rem;">{{ $pendientes }}</span>
+                                @endif
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('seguimiento.*') ? 'active' : '' }}" href="{{ route('seguimiento.index') }}">
+                                <i class="bi bi-clock-history me-1"></i> {{ auth()->user()->isEstudiante() ? 'Mi Seguimiento' : (auth()->user()->isTutor() ? 'Seguimiento Académico' : 'Seguimiento') }}
+                            </a>
+                        </li>
+                        @if(!auth()->user()->isEstudiante())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('reportes.*') ? 'active' : '' }}" href="{{ route('reportes.index') }}">
+                                <i class="bi bi-bar-chart-line me-1"></i> {{ auth()->user()->isTutor() ? 'Mis Reportes' : 'Reportes' }}
+                            </a>
+                        </li>
+                        @endif
+                    @endif
+                </ul>
+
+                <!-- User profile / logout -->
+                <div class="d-flex align-items-center gap-3">
+                    <div class="dropdown">
+                        <div class="user-pill dropdown-toggle" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="user-avatar">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            </div>
+                            <div class="d-none d-sm-block text-start">
+                                <div class="fw-semibold text-truncate" style="max-width: 140px; line-height: 1.2;">{{ auth()->user()->name }}</div>
+                                <small class="text-white-50" style="font-size: 0.72rem;">{{ auth()->user()->rol->nombre ?? 'Usuario' }}</small>
+                            </div>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userMenu">
+                            <li class="px-3 py-2 border-bottom">
+                                <div class="fw-bold">{{ auth()->user()->name }}</div>
+                                <small class="text-muted">{{ auth()->user()->email }}</small>
+                                <div class="mt-1"><span class="badge bg-primary">{{ auth()->user()->rol->nombre }}</span></div>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('perfil.edit') }}">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i> Mi Perfil
+                                </a>
+                            </li>
+                            @if(auth()->user()->isAdmin())
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">
+                                    <i class="bi bi-people-fill me-2 text-warning"></i> Gestión de Usuarios
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.roles.index') }}">
+                                    <i class="bi bi-shield-check me-2 text-success"></i> Roles y Permisos
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.periodos.index') }}">
+                                    <i class="bi bi-calendar3 me-2 text-info"></i> Períodos Académicos
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.auditoria.index') }}">
+                                    <i class="bi bi-journal-text me-2 text-danger"></i> Registro de Auditoría
+                                </a>
+                            </li>
+                            @endif
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container-fluid px-lg-4 py-4">
+        <!-- Flash messages -->
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+                <div>{{ session('success') }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('error') || (isset($errors) && $errors->any()))
+            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                <div>
+                    {{ session('error') ?? 'Por favor revisa los errores en el formulario.' }}
+                    @if(isset($errors) && $errors->any())
+                        <ul class="mb-0 mt-1 ps-3">
+                            @foreach($errors->all() as $err)
+                                <li>{{ $err }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('info'))
+            <div class="alert alert-info alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+                <i class="bi bi-info-circle-fill fs-5 me-2"></i>
+                <div>{{ session('info') }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @yield('content')
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container-fluid px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <div>
+                &copy; {{ date('Y') }} <strong>Universidad Privada Domingo Savio (UPDS)</strong> - Sede Cochabamba.
+            </div>
+            <div class="mt-2 mt-md-0">
+                <span class="text-muted">Ingeniería de Sistemas &bull; Ingeniería de Software II &bull; Grupo 2</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @yield('scripts')
+</body>
+</html>
