@@ -20,17 +20,24 @@ class SolicitudController extends Controller
     {
         $user = Auth::user();
         $tab = $request->get('tab', 'solicitudes');
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
 
         if ($user->isEstudiante()) {
             $estudiante = $user->estudiante;
             $solicitudes = SolicitudPractica::where('estudiante_id', $estudiante?->id)
                 ->with(['organizacion', 'periodo', 'documentos.tipoDocumento'])
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->orderBy('id', 'desc')
+                ->paginate($perPage, ['*'], 'sol_page')
+                ->withQueryString();
 
             $documentos = DocumentoSolicitud::whereHas('solicitud', function ($q) use ($estudiante) {
                 $q->where('estudiante_id', $estudiante?->id);
-            })->with(['tipoDocumento', 'solicitud.organizacion'])->orderBy('created_at', 'desc')->get();
+            })->with(['tipoDocumento', 'solicitud.organizacion'])
+              ->orderBy('created_at', 'desc')
+              ->orderBy('id', 'desc')
+              ->paginate($perPage, ['*'], 'doc_page')
+              ->withQueryString();
         } elseif ($user->isTutor()) {
             // Tutor: solo consulta las solicitudes de los estudiantes que tiene asignados en prácticas
             $tutor = $user->tutor;
@@ -41,13 +48,23 @@ class SolicitudController extends Controller
             if ($request->filled('estado')) {
                 $query->where('estado', $request->estado);
             }
-            $solicitudes = $query->orderBy('created_at', 'desc')->get();
+            if ($request->filled('buscar')) {
+                $search = $request->buscar;
+                $query->whereHas('estudiante', function ($q) use ($search) {
+                    $q->where('nombres', 'like', "%{$search}%")
+                      ->orWhere('apellidos', 'like', "%{$search}%")
+                      ->orWhere('ru', 'like', "%{$search}%");
+                });
+            }
+            $solicitudes = $query->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'sol_page')->withQueryString();
 
             $documentos = DocumentoSolicitud::whereHas('solicitud.practica', function ($q) use ($tutor) {
                 $q->where('tutor_id', $tutor?->id);
             })->with(['tipoDocumento', 'solicitud.estudiante', 'solicitud.organizacion'])
               ->orderBy('created_at', 'desc')
-              ->get();
+              ->orderBy('id', 'desc')
+              ->paginate($perPage, ['*'], 'doc_page')
+              ->withQueryString();
         } else {
             // Coordinador / Admin
             $query = SolicitudPractica::with(['estudiante.carrera', 'organizacion', 'periodo', 'documentos.tipoDocumento']);
@@ -68,18 +85,18 @@ class SolicitudController extends Controller
                       ->orWhere('ru', 'like', "%{$search}%");
                 });
             }
-            $solicitudes = $query->orderBy('created_at', 'desc')->get();
+            $solicitudes = $query->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'sol_page')->withQueryString();
 
             $docQuery = DocumentoSolicitud::with(['tipoDocumento', 'solicitud.estudiante', 'solicitud.organizacion']);
             if ($request->filled('estado_doc')) {
                 $docQuery->where('estado', $request->estado_doc);
             }
-            $documentos = $docQuery->orderBy('created_at', 'desc')->get();
+            $documentos = $docQuery->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'doc_page')->withQueryString();
         }
 
         $tiposDocumento = TipoDocumento::where('activo', true)->get();
 
-        return view('solicitudes.index', compact('solicitudes', 'documentos', 'tab', 'tiposDocumento'));
+        return view('solicitudes.index', compact('solicitudes', 'documentos', 'tab', 'tiposDocumento', 'perPage'));
     }
 
     public function create()
@@ -196,14 +213,22 @@ class SolicitudController extends Controller
         $estadoAnterior = $solicitude->estado;
         $nuevoEstado = $request->nuevo_estado;
 
-        // Reglas de negocio académicas para APROBAR una solicitud
+        // ── Reglas de negocio académicas para APROBAR una solicitud (RF-09) ──
         if ($nuevoEstado === 'aprobada') {
             // 1. La organización receptora debe estar activa
             if ($solicitude->organizacion->estado !== 'activa') {
                 return back()->withErrors(['nuevo_estado' => 'No se puede aprobar la solicitud: La organización receptora seleccionada se encuentra inactiva.'])->withInput();
             }
 
-            // 2. Verificar que los requisitos obligatorios del estudiante estén cumplidos
+            // 2. Transición de estado: solo se puede aprobar desde presentada/en_revision/observada
+            $estadosValidos = ['presentada', 'en_revision', 'observada'];
+            if (!in_array($estadoAnterior, $estadosValidos)) {
+                return back()->withErrors([
+                    'nuevo_estado' => "No se puede aprobar una solicitud con estado actual «{$estadoAnterior}». Solo se puede aprobar desde: Presentada, En revisión u Observada."
+                ])->withInput();
+            }
+
+            // 3. Verificar que los requisitos académicos obligatorios estén cumplidos
             $reqsObligatoriosPendientes = \App\Models\EstudianteRequisito::where('estudiante_id', $solicitude->estudiante_id)
                 ->whereHas('requisito', fn($q) => $q->where('obligatorio', true))
                 ->where('estado', '!=', 'cumple')
@@ -213,9 +238,40 @@ class SolicitudController extends Controller
             if ($reqsObligatoriosPendientes->isNotEmpty()) {
                 $nombresFaltantes = $reqsObligatoriosPendientes->pluck('requisito.nombre')->implode(', ');
                 return back()->withErrors([
-                    'nuevo_estado' => "No se puede aprobar la solicitud: El estudiante tiene requisitos académicos obligatorios pendientes o no cumplidos ({$nombresFaltantes}). Debe verificar y validar los requisitos en la ficha académica del estudiante antes de aprobar."
+                    'nuevo_estado' => "No se puede aprobar la solicitud: El estudiante tiene requisitos académicos obligatorios pendientes o no cumplidos ({$nombresFaltantes}). Verifique la ficha académica del estudiante."
                 ])->withInput();
             }
+
+            // 4. RF-09: Verificar que todos los documentos obligatorios estén adjuntos y validados
+            $tiposObligatorios = \App\Models\TipoDocumento::where('activo', true)->where('obligatorio', true)->pluck('id');
+            $docsEnExpediente  = $solicitude->documentos()->whereIn('tipo_documento_id', $tiposObligatorios)->get()->keyBy('tipo_documento_id');
+
+            $faltantes   = [];
+            $noValidados = [];
+            foreach ($tiposObligatorios as $tipoId) {
+                if (!isset($docsEnExpediente[$tipoId])) {
+                    $faltantes[] = \App\Models\TipoDocumento::find($tipoId)?->nombre ?? "Tipo #{$tipoId}";
+                } elseif (in_array($docsEnExpediente[$tipoId]->estado, ['rechazado', 'pendiente', 'observado'])) {
+                    $noValidados[] = $docsEnExpediente[$tipoId]->nombre_original . ' (' . $docsEnExpediente[$tipoId]->estado . ')';
+                }
+            }
+
+            if (!empty($faltantes)) {
+                return back()->withErrors([
+                    'nuevo_estado' => 'No se puede aprobar: Faltan documentos obligatorios en el expediente: ' . implode(', ', $faltantes) . '. El estudiante debe adjuntarlos primero.'
+                ])->withInput();
+            }
+
+            if (!empty($noValidados)) {
+                return back()->withErrors([
+                    'nuevo_estado' => 'No se puede aprobar: Los siguientes documentos no están validados (pendientes, observados o rechazados): ' . implode(', ', $noValidados) . '. Valídelos antes de aprobar la solicitud.'
+                ])->withInput();
+            }
+        }
+
+        // ── Validar transición de estado para rechazada/observada/en_revision ──
+        if ($nuevoEstado === 'rechazada' && in_array($estadoAnterior, ['aprobada', 'rechazada'])) {
+            return back()->withErrors(['nuevo_estado' => "No se puede rechazar una solicitud ya {$estadoAnterior}."])->withInput();
         }
 
         DB::transaction(function () use ($solicitude, $estadoAnterior, $nuevoEstado, $request, $user) {
@@ -240,16 +296,18 @@ class SolicitudController extends Controller
                 'fecha_cambio' => now(),
             ]);
 
-            // Si se aprueba y aún no tiene práctica, crear la práctica automáticamente
+            // RF-10: horas_objetivo y fecha_fin_prevista desde config/practicas.php, NO valores fijos.
+            // RF-10: La asignación de tutor corresponde al coordinador DESPUÉS de crear la práctica.
             if ($nuevoEstado === 'aprobada' && !$solicitude->practica) {
                 $defaultCoord = Coordinador::first();
                 Practica::create([
-                    'solicitud_id' => $solicitude->id,
-                    'coordinador_id' => $coord ? $coord->id : ($defaultCoord ? $defaultCoord->id : 1),
-                    'fecha_inicio' => now()->toDateString(),
-                    'fecha_fin_prevista' => now()->addMonths(3)->toDateString(),
-                    'horas_objetivo' => 240.00,
-                    'estado' => 'planificada',
+                    'solicitud_id'      => $solicitude->id,
+                    'coordinador_id'    => $coord ? $coord->id : ($defaultCoord ? $defaultCoord->id : 1),
+                    'fecha_inicio'      => now()->toDateString(),
+                    'fecha_fin_prevista'=> now()->addMonths(config('practicas.duracion_meses', 3))->toDateString(),
+                    'horas_objetivo'    => config('practicas.horas_objetivo', 240.0),
+                    'estado'            => 'planificada',
+                    // tutor_id se asigna explícitamente desde el módulo de seguimiento por el coordinador.
                 ]);
             }
         });

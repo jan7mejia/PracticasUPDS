@@ -18,17 +18,17 @@
 <!-- Barra de Filtros (Exacta a la Imagen 3) -->
 <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
     <form action="{{ route('estudiantes.index') }}" method="GET" class="row g-2 align-items-end">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-2">
             <label class="form-label small text-muted mb-1 fw-semibold">Código (RU)</label>
-            <input type="text" name="codigo" class="form-control form-control-sm" placeholder="Ej. 3200001" value="{{ request('codigo') }}">
+            <input type="text" name="codigo" class="form-control form-control-sm" placeholder="Ej. 3200001" value="{{ request('codigo') }}" data-auto-search autocomplete="off">
         </div>
         <div class="col-12 col-md-3">
-            <label class="form-label small text-muted mb-1 fw-semibold">Nombre</label>
-            <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Ej. Juan Pérez" value="{{ request('nombre') }}">
+            <label class="form-label small text-muted mb-1 fw-semibold">Nombre o apellido</label>
+            <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Ej. Juan Pérez" value="{{ request('nombre') }}" data-auto-search autocomplete="off">
         </div>
         <div class="col-12 col-md-3">
             <label class="form-label small text-muted mb-1 fw-semibold">Carrera</label>
-            <select name="carrera_id" class="form-select form-select-sm">
+            <select name="carrera_id" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="">Todas las carreras</option>
                 @foreach($carreras as $c)
                     <option value="{{ $c->id }}" {{ request('carrera_id') == $c->id ? 'selected' : '' }}>
@@ -37,19 +37,22 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-12 col-md-2">
+        <div class="col-6 col-md-2">
             <label class="form-label small text-muted mb-1 fw-semibold">Estado</label>
-            <select name="estado" class="form-select form-select-sm">
+            <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="">Todos</option>
                 <option value="activo" {{ request('estado') == 'activo' ? 'selected' : '' }}>Activo</option>
                 <option value="inactivo" {{ request('estado') == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
                 <option value="egresado" {{ request('estado') == 'egresado' ? 'selected' : '' }}>Egresado</option>
             </select>
         </div>
-        <div class="col-12 col-md-1">
-            <button type="submit" class="btn btn-sm btn-primary w-100" style="background-color: var(--upds-blue);">
-                <i class="bi bi-search"></i> Buscar
-            </button>
+        <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1 fw-semibold">Por pág.</label>
+            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 registros</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 registros</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 registros</option>
+            </select>
         </div>
     </form>
 </div>
@@ -121,9 +124,14 @@
         </table>
     </div>
 
-    @if($estudiantes->hasPages())
-        <div class="p-3 border-top d-flex justify-content-end">
-            {{ $estudiantes->links() }}
+    @if($estudiantes->hasPages() || $estudiantes->total() > 0)
+        <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span class="small text-muted">
+                Mostrando <strong>{{ $estudiantes->firstItem() ?? 0 }}</strong>–<strong>{{ $estudiantes->lastItem() ?? 0 }}</strong> de <strong>{{ $estudiantes->total() }}</strong> estudiantes
+            </span>
+            <div>
+                {{ $estudiantes->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     @endif
 </div>

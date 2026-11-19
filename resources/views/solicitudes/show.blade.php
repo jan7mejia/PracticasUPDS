@@ -107,7 +107,12 @@
             <div class="timeline small">
                 @forelse($solicitud->historial as $h)
                     <div class="border-start border-2 border-primary ps-3 pb-3 position-relative">
-                        <div class="fw-bold text-dark">{{ ucfirst(str_replace('_', ' ', $h->estado_nuevo)) }}</div>
+                        <div class="fw-bold text-dark">
+                            {{ ucfirst(str_replace('_', ' ', $h->estado_nuevo)) }}
+                            @if($h->estado_anterior && $h->estado_anterior !== $h->estado_nuevo)
+                                <small class="text-muted fw-normal ms-1">← {{ ucfirst(str_replace('_', ' ', $h->estado_anterior)) }}</small>
+                            @endif
+                        </div>
                         <div class="text-muted" style="font-size: 0.75rem;">
                             {{ $h->fecha_cambio->format('d/m/Y H:i') }} &bull; Por: {{ $h->usuario->name }}
                         </div>
@@ -154,8 +159,8 @@
                                 </select>
                             </div>
                             <div class="col-md-5">
-                                <label class="form-label small fw-semibold">Archivo (PDF / DOC) *</label>
-                                <input type="file" name="archivo" class="form-control form-control-sm" required>
+                                <label class="form-label small fw-semibold">Archivo (PDF / DOC / DOCX) *</label>
+                                <input type="file" name="archivo" accept=".pdf,.doc,.docx" class="form-control form-control-sm" required>
                             </div>
                             <div class="col-md-2">
                                 <button type="submit" class="btn btn-sm btn-upds w-100">Subir</button>

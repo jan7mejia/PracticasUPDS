@@ -43,10 +43,11 @@ class AdminController extends Controller
             $query->where('activo', $estadoFilter === '1');
         }
 
-        $usuarios = $query->paginate(15)->withQueryString();
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
+        $usuarios = $query->orderBy('id', 'desc')->paginate($perPage)->withQueryString();
         $roles    = Role::orderBy('nombre')->get();
 
-        return view('admin.usuarios.index', compact('usuarios', 'roles', 'search', 'rolFilter', 'estadoFilter'));
+        return view('admin.usuarios.index', compact('usuarios', 'roles', 'search', 'rolFilter', 'estadoFilter', 'perPage'));
     }
 
     public function usuariosShow(User $usuario)
@@ -315,10 +316,11 @@ class AdminController extends Controller
     //  GESTIÓN DE PERÍODOS ACADÉMICOS
     // ═══════════════════════════════════════════════
 
-    public function periodosIndex()
+    public function periodosIndex(Request $request)
     {
-        $periodos = PeriodoAcademico::orderBy('fecha_inicio', 'desc')->paginate(10);
-        return view('admin.periodos.index', compact('periodos'));
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
+        $periodos = PeriodoAcademico::orderBy('fecha_inicio', 'desc')->paginate($perPage)->withQueryString();
+        return view('admin.periodos.index', compact('periodos', 'perPage'));
     }
 
     public function periodosCreate()
@@ -472,9 +474,10 @@ class AdminController extends Controller
             });
         }
 
-        $registros = $query->paginate(20)->withQueryString();
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
+        $registros = $query->paginate($perPage)->withQueryString();
         $acciones = AuditoriaAdministrativa::select('accion')->distinct()->pluck('accion');
 
-        return view('admin.auditoria.index', compact('registros', 'acciones'));
+        return view('admin.auditoria.index', compact('registros', 'acciones', 'perPage'));
     }
 }

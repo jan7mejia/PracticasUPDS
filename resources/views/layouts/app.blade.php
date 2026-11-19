@@ -437,42 +437,89 @@
 
     <!-- Main Content Area -->
     <main class="container-fluid px-lg-4 py-4">
-        <!-- Flash messages -->
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
-                <i class="bi bi-check-circle-fill fs-5 me-2"></i>
-                <div>{{ session('success') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        @if(session('error') || (isset($errors) && $errors->any()))
-            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
-                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
-                <div>
-                    {{ session('error') ?? 'Por favor revisa los errores en el formulario.' }}
-                    @if(isset($errors) && $errors->any())
-                        <ul class="mb-0 mt-1 ps-3">
-                            @foreach($errors->all() as $err)
-                                <li>{{ $err }}</li>
-                            @endforeach
-                        </ul>
-                    @endif
+        <!-- Notificaciones Flotantes Tipo Toast (Modernas, breves y con auto-cierre) -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+            @if(session('success'))
+                <div class="toast align-items-center text-bg-success border-0 shadow-lg rounded-4 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+                    <div class="d-flex">
+                        <div class="toast-body d-flex align-items-center gap-2 py-3 fs-6">
+                            <i class="bi bi-check-circle-fill fs-5"></i>
+                            <span class="fw-medium">{{ session('success') }}</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
+            @endif
 
-        @if(session('info'))
-            <div class="alert alert-info alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
-                <i class="bi bi-info-circle-fill fs-5 me-2"></i>
-                <div>{{ session('info') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            @if(session('info'))
+                <div class="toast align-items-center text-bg-primary border-0 shadow-lg rounded-4 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+                    <div class="d-flex">
+                        <div class="toast-body d-flex align-items-center gap-2 py-3 fs-6">
+                            <i class="bi bi-info-circle-fill fs-5"></i>
+                            <span class="fw-medium">{{ session('info') }}</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div class="toast align-items-center text-bg-warning border-0 shadow-lg rounded-4 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                    <div class="d-flex">
+                        <div class="toast-body d-flex align-items-center gap-2 py-3 fs-6 text-dark">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-dark"></i>
+                            <span class="fw-medium">{{ session('warning') }}</span>
+                        </div>
+                        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <!-- Errores de Validación o Formulario (Permanece visible hasta corrección) -->
+        @if(session('error') || (isset($errors) && $errors->any()))
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert">
+                <div class="d-flex align-items-start gap-2">
+                    <i class="bi bi-x-circle-fill fs-5 text-danger mt-1"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">{{ session('error') ?? 'Completa o corrige los siguientes campos:' }}</div>
+                        @if(isset($errors) && $errors->any())
+                            <ul class="mb-0 mt-1 ps-3 small">
+                                @foreach($errors->all() as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
             </div>
         @endif
 
         @yield('content')
     </main>
+
+    <!-- Modal Reutilizable de Confirmación Global -->
+    <div class="modal fade" id="modalConfirmacionGlobal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="confirmModalTitle">
+                        <i class="bi bi-question-circle-fill text-warning fs-5"></i>
+                        <span id="confirmModalTitleText">Confirmar acción</span>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-muted mb-0" id="confirmModalMessage">¿Estás seguro de realizar esta operación?</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" id="confirmModalButton">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer>
@@ -488,6 +535,63 @@
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Inicialización automática de Toasts flotantes
+            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            toastElList.map(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { autohide: true });
+                toast.show();
+            });
+
+            // 2. Manejador global para acciones de confirmación modal
+            document.querySelectorAll('[data-confirm]').forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var targetForm = this.closest('form');
+                    var msg = this.getAttribute('data-confirm') || '¿Deseas confirmar esta operación?';
+                    var title = this.getAttribute('data-confirm-title') || 'Confirmar acción';
+                    var btnText = this.getAttribute('data-confirm-btn') || 'Confirmar';
+                    var btnClass = this.getAttribute('data-confirm-class') || 'btn-primary';
+
+                    document.getElementById('confirmModalMessage').innerText = msg;
+                    document.getElementById('confirmModalTitleText').innerText = title;
+                    var confirmBtn = document.getElementById('confirmModalButton');
+                    confirmBtn.innerText = btnText;
+                    confirmBtn.className = 'btn btn-sm rounded-pill px-3 fw-semibold ' + btnClass;
+
+                    var modal = new bootstrap.Modal(document.getElementById('modalConfirmacionGlobal'));
+                    confirmBtn.onclick = function() {
+                        modal.hide();
+                        if (targetForm) {
+                            targetForm.submit();
+                        } else if (element.tagName === 'A' && element.href) {
+                            window.location.href = element.href;
+                        }
+                    };
+                    modal.show();
+                });
+            });
+
+            // 3. Buscador automático con retardo inteligente (debounce 300ms)
+            document.querySelectorAll('input[data-auto-search]').forEach(function(input) {
+                var timer = null;
+                var form = input.closest('form');
+                input.addEventListener('input', function() {
+                    clearTimeout(timer);
+                    var query = input.value.trim();
+                    timer = setTimeout(function() {
+                        if (form) {
+                            // Si el campo fue vaciado o tiene 2 o más caracteres, disparar búsqueda
+                            if (query.length >= 2 || query.length === 0) {
+                                form.submit();
+                            }
+                        }
+                    }, 350);
+                });
+            });
+        });
+    </script>
     @yield('scripts')
 </body>
 </html>

@@ -12,6 +12,39 @@
     </div>
 </div>
 
+<!-- Filtros y Búsqueda con Auto-búsqueda -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+    <form action="{{ route('seguimiento.index') }}" method="GET" class="row g-2 align-items-center">
+        <div class="col-12 col-md-6">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="buscar" value="{{ request('buscar') }}" class="form-control bg-light border-start-0" 
+                       placeholder="Buscar por estudiante, RU u organización..." data-auto-search autocomplete="off">
+                @if(request('buscar'))
+                    <a href="{{ route('seguimiento.index') }}" class="btn btn-outline-secondary btn-sm" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+                @endif
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Todos los estados</option>
+                <option value="planificada" {{ request('estado') === 'planificada' ? 'selected' : '' }}>Planificada</option>
+                <option value="en_curso" {{ request('estado') === 'en_curso' ? 'selected' : '' }}>En curso</option>
+                <option value="concluida" {{ request('estado') === 'concluida' ? 'selected' : '' }}>Concluida</option>
+                <option value="abandonada" {{ request('estado') === 'abandonada' ? 'selected' : '' }}>Abandonada</option>
+                <option value="cancelada" {{ request('estado') === 'cancelada' ? 'selected' : '' }}>Cancelada</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 por página</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 por página</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 por página</option>
+            </select>
+        </div>
+    </form>
+</div>
+
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -69,6 +102,18 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Paginación de Prácticas -->
+    @if($practicas->hasPages() || $practicas->total() > 0)
+        <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span class="small text-muted">
+                Mostrando <strong>{{ $practicas->firstItem() ?? 0 }}</strong>–<strong>{{ $practicas->lastItem() ?? 0 }}</strong> de <strong>{{ $practicas->total() }}</strong> prácticas registradas
+            </span>
+            <div>
+                {{ $practicas->links('pagination::bootstrap-5') }}
+            </div>
+        </div>
+    @endif
 </div>
 @endsection
 

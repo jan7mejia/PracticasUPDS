@@ -22,20 +22,33 @@
     <!-- Columna Izquierda: Buscador y Lista de Empresas -->
     <div class="col-12 col-lg-5">
         <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-            <!-- Barra de búsqueda -->
+            <!-- Barra de búsqueda con auto-búsqueda inteligente -->
             <form action="{{ route('organizaciones.index') }}" method="GET" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar organización..." value="{{ $search }}">
-                    <button class="btn btn-sm btn-outline-secondary" type="submit">
-                        <i class="bi bi-search"></i>
-                    </button>
+                <div class="row g-2">
+                    <div class="col-8">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" name="buscar" class="form-control bg-light border-start-0" 
+                                   placeholder="Buscar organización o rubro..." value="{{ $search }}" data-auto-search autocomplete="off">
+                            @if($search)
+                                <a href="{{ route('organizaciones.index') }}" class="btn btn-outline-secondary btn-sm" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 / pág</option>
+                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / pág</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / pág</option>
+                        </select>
+                    </div>
                 </div>
             </form>
 
             <!-- Lista interactiva -->
             <div class="list-group list-group-flush rounded-3 overflow-hidden">
                 @forelse($organizaciones as $org)
-                    <a href="{{ route('organizaciones.index', ['selected' => $org->id, 'buscar' => $search]) }}" 
+                    <a href="{{ route('organizaciones.index', ['selected' => $org->id, 'buscar' => $search, 'per_page' => request('per_page', 10)]) }}" 
                        class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 {{ $selectedOrg && $selectedOrg->id == $org->id ? 'active' : '' }}"
                        style="{{ $selectedOrg && $selectedOrg->id == $org->id ? 'background-color: #e0f2fe; border-color: #bae6fd; color: #0284c7;' : '' }}">
                         <div class="d-flex align-items-center gap-3">
@@ -60,6 +73,18 @@
                     </div>
                 @endforelse
             </div>
+
+            <!-- Paginación de Organizaciones -->
+            @if($organizaciones->hasPages() || $organizaciones->total() > 0)
+                <div class="border-top pt-3 mt-3 d-flex flex-column justify-content-between align-items-center gap-2">
+                    <span class="small text-muted" style="font-size: 0.78rem;">
+                        Mostrando <strong>{{ $organizaciones->firstItem() ?? 0 }}</strong>–<strong>{{ $organizaciones->lastItem() ?? 0 }}</strong> de <strong>{{ $organizaciones->total() }}</strong> empresas
+                    </span>
+                    <div>
+                        {{ $organizaciones->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

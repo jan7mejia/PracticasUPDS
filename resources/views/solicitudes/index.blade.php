@@ -17,21 +17,58 @@
     @endif
 </div>
 
-<!-- Tabs idénticos a la Imagen 5 -->
+<!-- Tabs con contadores reales -->
 <ul class="nav nav-pills mb-4 gap-2" id="solicitudesTab" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link {{ $tab === 'solicitudes' ? 'active' : '' }} fw-semibold rounded-pill px-4" 
                 id="sol-tab" data-bs-toggle="pill" data-bs-target="#sol-content" type="button" role="tab">
-            <i class="bi bi-file-text me-1"></i> Solicitudes ({{ count($solicitudes) }})
+            <i class="bi bi-file-text me-1"></i> Solicitudes ({{ $solicitudes->total() }})
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link {{ $tab === 'documentos' ? 'active' : '' }} fw-semibold rounded-pill px-4" 
                 id="doc-tab" data-bs-toggle="pill" data-bs-target="#doc-content" type="button" role="tab">
-            <i class="bi bi-paperclip me-1"></i> Documentos ({{ count($documentos) }})
+            <i class="bi bi-paperclip me-1"></i> Documentos ({{ $documentos->total() }})
         </button>
     </li>
 </ul>
+
+<!-- Barra de Búsqueda y Filtros con Auto-búsqueda -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+    <form action="{{ route('solicitudes.index') }}" method="GET" class="row g-2 align-items-center">
+        <input type="hidden" name="tab" value="{{ $tab }}">
+        <div class="col-12 col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="buscar" value="{{ request('buscar') }}" class="form-control bg-light border-start-0" 
+                       placeholder="Buscar por estudiante, RU u organización..." data-auto-search autocomplete="off">
+                @if(request('buscar'))
+                    <a href="{{ route('solicitudes.index', ['tab' => $tab]) }}" class="btn btn-outline-secondary btn-sm" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+                @endif
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Todos los estados</option>
+                <option value="presentada" {{ request('estado') === 'presentada' ? 'selected' : '' }}>Presentada</option>
+                <option value="en_revision" {{ request('estado') === 'en_revision' ? 'selected' : '' }}>En revisión</option>
+                <option value="observada" {{ request('estado') === 'observada' ? 'selected' : '' }}>Observada</option>
+                <option value="aprobada" {{ request('estado') === 'aprobada' ? 'selected' : '' }}>Aprobada</option>
+                <option value="rechazada" {{ request('estado') === 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 por pág.</option>
+                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 por pág.</option>
+                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 por pág.</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-2 text-md-end">
+            <span class="small text-muted">Total: <strong>{{ $solicitudes->total() }}</strong></span>
+        </div>
+    </form>
+</div>
 
 <div class="tab-content" id="solicitudesTabContent">
     <!-- PESTAÑA 1: SOLICITUDES -->
@@ -96,6 +133,18 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Controles de Paginación y Conteo (Solicitudes) -->
+            @if($solicitudes->hasPages() || $solicitudes->total() > 0)
+                <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                    <span class="small text-muted">
+                        Mostrando <strong>{{ $solicitudes->firstItem() ?? 0 }}</strong>–<strong>{{ $solicitudes->lastItem() ?? 0 }}</strong> de <strong>{{ $solicitudes->total() }}</strong> solicitudes
+                    </span>
+                    <div>
+                        {{ $solicitudes->appends(['tab' => 'solicitudes'])->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -137,7 +186,7 @@
                             <p class="small text-muted mb-2">Arrastra tu archivo aquí o</p>
                             <label class="btn btn-sm btn-outline-primary fw-semibold px-3 mb-2" style="cursor: pointer;">
                                 <i class="bi bi-folder2-open me-1"></i> Selecciona un archivo
-                                <input type="file" name="archivo" class="d-none" required onchange="document.getElementById('fileNameText').innerText = this.files[0]?.name || ''">
+                                <input type="file" name="archivo" accept=".pdf,.doc,.docx" class="d-none" required onchange="document.getElementById('fileNameText').innerText = this.files[0]?.name || ''">
                             </label>
                             <div id="fileNameText" class="text-success small fw-semibold"></div>
                             <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">Formatos admitidos: PDF, DOC, DOCX (Máx. 10 MB)</small>
@@ -184,7 +233,8 @@
                                 </div>
 
                                 <!-- Acciones de revisión para Coordinador / Tutor (Exactas a la Imagen 5) -->
-                                @if(auth()->user()->isCoordinador() || auth()->user()->isTutor())
+                                {{-- RF-08 / RF-09: Solo el coordinador puede validar/rechazar documentos; tutor solo lee --}}
+                                @if(auth()->user()->isCoordinador())
                                     <div class="mt-3 pt-2 border-top d-flex gap-2 justify-content-end align-items-center">
                                         <span class="small text-muted me-auto">Revisión del documento:</span>
                                         <form action="{{ route('documentos.validar', $doc->id) }}" method="POST" class="d-inline">
@@ -230,6 +280,17 @@
                             </div>
                         @endforelse
                     </div>
+
+                    @if($documentos->hasPages() || $documentos->total() > 0)
+                        <div class="border-top pt-3 mt-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                            <span class="small text-muted">
+                                Mostrando <strong>{{ $documentos->firstItem() ?? 0 }}</strong>–<strong>{{ $documentos->lastItem() ?? 0 }}</strong> de <strong>{{ $documentos->total() }}</strong> documentos
+                            </span>
+                            <div>
+                                {{ $documentos->appends(['tab' => 'documentos'])->links('pagination::bootstrap-5') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

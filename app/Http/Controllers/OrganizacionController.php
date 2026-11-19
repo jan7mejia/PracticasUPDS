@@ -11,19 +11,24 @@ class OrganizacionController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('buscar');
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
         $query = OrganizacionReceptora::with('responsables');
 
         if ($search) {
-            $query->where('nombre', 'like', "%{$search}%")
-                  ->orWhere('rubro', 'like', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('rubro', 'like', "%{$search}%")
+                  ->orWhere('nit', 'like', "%{$search}%");
+            });
         }
 
-        $organizaciones = $query->orderBy('nombre')->get();
+        // Orden reciente primero y paginación
+        $organizaciones = $query->orderBy('id', 'desc')->paginate($perPage)->withQueryString();
         
         $selectedId = $request->get('selected', $organizaciones->first()?->id);
         $selectedOrg = $organizaciones->where('id', $selectedId)->first() ?? $organizaciones->first();
 
-        return view('organizaciones.index', compact('organizaciones', 'selectedOrg', 'search'));
+        return view('organizaciones.index', compact('organizaciones', 'selectedOrg', 'search', 'perPage'));
     }
 
     public function create()

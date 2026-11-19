@@ -15,15 +15,25 @@ class DocumentoController extends Controller
         $request->validate([
             'solicitud_id' => 'required|exists:solicitudes_practica,id',
             'tipo_documento_id' => 'required|exists:tipos_documento,id',
-            'archivo' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:10240', // 10MB
+            'archivo' => 'required|file|mimes:pdf,doc,docx|max:10240', // Solo PDF y Word (10MB)
+        ], [
+            'archivo.required' => 'Selecciona un documento para adjuntar.',
+            'archivo.file' => 'El elemento seleccionado no es un archivo válido.',
+            'archivo.mimes' => 'Formato no permitido. Para documentos académicos formales, usa únicamente archivos PDF o Word (.pdf, .doc, .docx).',
+            'archivo.max' => 'El archivo supera el límite de 10 MB.',
         ]);
 
         $solicitud = SolicitudPractica::findOrFail($request->solicitud_id);
         $user = Auth::user();
 
-        // Validar permisos: Estudiante solo sube a su solicitud
+        // Validar permisos: Estudiante solo sube a su propia solicitud
         if ($user->isEstudiante() && $user->estudiante?->id !== $solicitud->estudiante_id) {
             abort(403, 'No tienes permiso para subir documentos a esta solicitud.');
+        }
+
+        // Tutores no cargan documentos de admisión a la solicitud
+        if ($user->isTutor()) {
+            abort(403, 'Los docentes tutores no tienen permisos para cargar documentos en el expediente de solicitud.');
         }
 
         $file = $request->file('archivo');
@@ -46,7 +56,7 @@ class DocumentoController extends Controller
             'created_at' => now(),
         ]);
 
-        return back()->with('success', 'Documento adjuntado exitosamente en almacenamiento privado.');
+        return back()->with('success', 'Documento adjuntado correctamente.');
     }
 
     public function download(DocumentoSolicitud $documento)
@@ -67,9 +77,11 @@ class DocumentoController extends Controller
             }
         }
 
+        // RF-08: No fabricar archivos ficticios. Si el físico no existe, reportar error.
         if (!Storage::disk('local')->exists($documento->ruta_privada)) {
-            // Si es un archivo demo que aún no se subió físicamente, creamos un archivo de muestra
-            Storage::disk('local')->put($documento->ruta_privada, "Documento de prueba institucional UPDS: {$documento->nombre_original}");
+            return back()->withErrors([
+                'archivo' => "El archivo '{$documento->nombre_original}' no se encuentra en el servidor. Es posible que haya sido eliminado o que nunca se haya cargado correctamente. Vuelva a subir el documento.",
+            ]);
         }
 
         return Storage::disk('local')->download($documento->ruta_privada, $documento->nombre_original);

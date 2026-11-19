@@ -484,8 +484,8 @@
                         <input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Horas realizadas * (entre 0.5 y 24)</label>
-                        <input type="number" step="0.5" name="horas" class="form-control" min="0.5" max="24" value="4" required>
+                        <label class="form-label small fw-semibold">Horas realizadas * (entre 0.5 y {{ config('practicas.max_horas_diarias', 8.0) }})</label>
+                        <input type="number" step="0.5" name="horas" class="form-control" min="0.5" max="{{ config('practicas.max_horas_diarias', 8.0) }}" value="4" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Descripción detallada de actividades *</label>
@@ -527,12 +527,12 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Resumen de Actividades</label>
-                        <textarea name="resumen" class="form-control" rows="3" placeholder="Sintetiza los avances y logros del período..."></textarea>
+                        <label class="form-label small fw-semibold">Resumen de Actividades *</label>
+                        <textarea name="resumen" class="form-control" rows="3" required placeholder="Sintetiza los avances y logros del período..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Archivo Adjunto (Opcional - PDF / DOC)</label>
-                        <input type="file" name="archivo" class="form-control">
+                        <label class="form-label small fw-semibold">Archivo Adjunto (Obligatorio - PDF / DOC / DOCX - Máx. 10 MB) *</label>
+                        <input type="file" name="archivo" accept=".pdf,.doc,.docx" class="form-control" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -544,17 +544,21 @@
     </div>
 </div>
 
-<!-- Modal Registrar Evaluación Final -->
+<!-- Modal Registrar Evaluación Final (RF-13: Emisión del tutor; no concluye la práctica) -->
 <div class="modal fade" id="modalEvaluacionFinal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-header bg-success text-white">
-                <h6 class="modal-title fw-bold">Registrar Evaluación Final de Práctica</h6>
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-award me-2"></i>Evaluación Final del Docente Tutor</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('seguimiento.evaluacion.store', $practica->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        El Docente Tutor califica el desempeño final. El cierre institucional corresponde a la Coordinación Académica.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Calificación Final (0 a 100) *</label>
                         <input type="number" step="0.5" name="calificacion" class="form-control" min="0" max="100" value="95" required>
@@ -567,13 +571,13 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Comentario / Dictamen de Cierre *</label>
+                        <label class="form-label small fw-semibold">Comentario / Opinión Evaluativa *</label>
                         <textarea name="comentario" class="form-control" rows="3" required placeholder="Dictamen del docente tutor sobre el desempeño del practicante..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-success">Finalizar y Concluir Práctica</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Guardar Evaluación Final</button>
                 </div>
             </form>
         </div>
@@ -900,8 +904,8 @@
                             El cierre formal de práctica requiere que el Docente Tutor haya emitido la evaluación final con resultado aprobatorio.
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small fw-semibold">Nota o dictamen de Coordinación Académica (Opcional)</label>
-                            <textarea name="motivo" class="form-control" rows="3" placeholder="Resolución de coordinación académica para acreditación de la práctica..."></textarea>
+                            <label class="form-label small fw-semibold">Resolución institucional de Coordinación Académica *</label>
+                            <textarea name="motivo" class="form-control" rows="3" required placeholder="Resolución de coordinación académica para acreditación de la práctica..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

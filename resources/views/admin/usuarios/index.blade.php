@@ -40,13 +40,13 @@
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body p-3">
         <form method="GET" action="{{ route('admin.usuarios.index') }}" class="row g-2 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Buscar por nombre o correo</label>
-                <input type="text" name="q" class="form-control form-control-sm" placeholder="Ej: Carlos Meneses o @upds.edu.bo..." value="{{ $search }}">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Ej: Carlos Meneses o @upds.edu.bo..." value="{{ $search }}" data-auto-search autocomplete="off">
             </div>
             <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Rol institucional</label>
-                <select name="rol_id" class="form-select form-select-sm">
+                <select name="rol_id" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">— Todos los roles —</option>
                     @foreach($roles as $rol)
                         <option value="{{ $rol->id }}" {{ $rolFilter == $rol->id ? 'selected' : '' }}>{{ $rol->nombre }}</option>
@@ -55,18 +55,23 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label small fw-semibold text-muted mb-1">Estado de cuenta</label>
-                <select name="estado" class="form-select form-select-sm">
+                <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">— Todos —</option>
                     <option value="1" {{ isset($estadoFilter) && $estadoFilter === '1' ? 'selected' : '' }}>Activos</option>
                     <option value="0" {{ isset($estadoFilter) && $estadoFilter === '0' ? 'selected' : '' }}>Inactivos</option>
                 </select>
             </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-primary btn-sm px-3">
-                    <i class="bi bi-search me-1"></i> Filtrar
-                </button>
-                <a href="{{ route('admin.usuarios.index') }}" class="btn btn-outline-secondary btn-sm px-3 ms-1">
-                    <i class="bi bi-x"></i> Limpiar
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted mb-1">Por página</label>
+                <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 usuarios</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 usuarios</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 usuarios</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-md-end">
+                <a href="{{ route('admin.usuarios.index') }}" class="btn btn-outline-secondary btn-sm px-3 w-100">
+                    <i class="bi bi-x-circle me-1"></i> Limpiar
                 </a>
             </div>
         </form>
@@ -156,9 +161,14 @@
                 </tbody>
             </table>
         </div>
-        @if($usuarios->hasPages())
-        <div class="px-4 py-3 border-top">
-            {{ $usuarios->links() }}
+        @if($usuarios->hasPages() || $usuarios->total() > 0)
+        <div class="px-4 py-3 border-top d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span class="small text-muted">
+                Mostrando <strong>{{ $usuarios->firstItem() ?? 0 }}</strong>–<strong>{{ $usuarios->lastItem() ?? 0 }}</strong> de <strong>{{ $usuarios->total() }}</strong> usuarios registrados
+            </span>
+            <div>
+                {{ $usuarios->links('pagination::bootstrap-5') }}
+            </div>
         </div>
         @endif
     </div>

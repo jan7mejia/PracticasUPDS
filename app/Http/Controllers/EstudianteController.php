@@ -27,6 +27,7 @@ class EstudianteController extends Controller
             return view('estudiantes.tutor_index', compact('practicas', 'tutor'));
         }
 
+        $perPage = in_array((int)$request->get('per_page'), [10, 25, 50]) ? (int)$request->get('per_page') : 10;
         $query = Estudiante::with(['carrera', 'user']);
 
         if ($request->filled('codigo')) {
@@ -49,11 +50,11 @@ class EstudianteController extends Controller
             $query->where('estado', $request->estado);
         }
 
-        $estudiantes = $query->orderBy('apellidos')->paginate(10);
+        $estudiantes = $query->orderBy('id', 'desc')->paginate($perPage)->withQueryString();
         $carreras = Carrera::where('activa', true)->get();
         $cuentasEstudiantes = User::where('rol_id', 4)->whereDoesntHave('estudiante')->orderBy('name')->get();
 
-        return view('estudiantes.index', compact('estudiantes', 'carreras', 'cuentasEstudiantes'));
+        return view('estudiantes.index', compact('estudiantes', 'carreras', 'cuentasEstudiantes', 'perPage'));
     }
 
     public function create()
