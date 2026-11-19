@@ -220,6 +220,12 @@
 <div class="row g-4 mb-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm rounded-4 p-4">
+            @php
+                $puedeAdjuntar = auth()->user()->isEstudiante() 
+                    && auth()->user()->estudiante?->id === $solicitud->estudiante_id 
+                    && in_array($solicitud->estado, ['presentada', 'en_revision', 'observada']);
+            @endphp
+
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-2 border-bottom">
                 <div class="d-flex align-items-center gap-2">
                     <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
@@ -235,18 +241,19 @@
                     </div>
                 </div>
 
-                @if(auth()->user()->isEstudiante() || auth()->user()->isCoordinador() || auth()->user()->isAdmin())
+                @if($puedeAdjuntar)
                     <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" data-bs-toggle="collapse" data-bs-target="#formSubirDoc">
                         <i class="bi bi-cloud-arrow-up me-1"></i> + Adjuntar Documento
                     </button>
                 @endif
             </div>
 
-            <!-- Formulario colapsable para adjuntar documento -->
+            <!-- Formulario colapsable para adjuntar documento (Exclusivo Estudiante Propietario) -->
+            @if($puedeAdjuntar)
             <div class="collapse mb-4" id="formSubirDoc">
                 <div class="p-4 bg-light rounded-4 border">
                     <h6 class="fw-bold text-navy mb-3">
-                        <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Cargar Documento al Expediente
+                        <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Cargar o Reemplazar Documento del Expediente
                     </h6>
                     <form action="{{ route('documentos.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
@@ -254,15 +261,15 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-12 col-md-5">
                                 <label class="form-label small fw-semibold text-muted mb-1">Tipo de documento *</label>
-                                <select name="tipo_documento_id" class="form-select form-select-sm" required>
+                                <select name="tipo_documento_id" id="selectTipoDoc" class="form-select form-select-sm" required>
                                     @foreach($tiposDocumento as $td)
                                         <option value="{{ $td->id }}">{{ $td->nombre }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-12 col-md-5">
-                                <label class="form-label small fw-semibold text-muted mb-1">Archivo digital (PDF / DOC / DOCX, máx. 5 MB) *</label>
-                                <input type="file" name="archivo" accept=".pdf,.doc,.docx" class="form-control form-control-sm" required>
+                                <label class="form-label small fw-semibold text-muted mb-1">Archivo digital (PDF / DOC / DOCX, máx. 10 MB) *</label>
+                                <input type="file" name="archivo" id="inputArchivoDoc" accept=".pdf,.doc,.docx" class="form-control form-control-sm" required>
                             </div>
                             <div class="col-12 col-md-2">
                                 <button type="submit" class="btn btn-sm btn-upds w-100 rounded-pill fw-semibold">
@@ -273,6 +280,7 @@
                     </form>
                 </div>
             </div>
+            @endif
 
             <!-- Tabla de documentos a ancho completo -->
             <div class="table-responsive">
@@ -283,8 +291,8 @@
                             <th style="min-width: 140px;">Tipo</th>
                             <th style="min-width: 130px;">Fecha de Carga</th>
                             <th style="min-width: 110px;">Estado</th>
-                            <th style="min-width: 200px;">Validación / Observación</th>
-                            <th class="text-end pe-3" style="min-width: 130px;">Acciones</th>
+                            <th style="min-width: 220px;">Validación / Observación</th>
+                            <th class="text-end pe-3" style="min-width: 140px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -294,7 +302,12 @@
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
                                         <div>
-                                            <div class="fw-semibold text-dark">{{ $doc->nombre_original }}</div>
+                                            <div class="fw-semibold text-dark">
+                                                {{ $doc->nombre_original }}
+                                                @if($doc->version_documento > 1)
+                                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill ms-1" style="font-size: 0.7rem;">v{{ $doc->version_documento }}</span>
+                                                @endif
+                                            </div>
                                             <small class="text-muted">{{ number_format($doc->tamano_bytes / 1024, 1) }} KB</small>
                                         </div>
                                     </div>
@@ -313,18 +326,35 @@
                                     </span>
                                 </td>
                                 <td class="small">
-                                    @if($doc->observacion_validacion)
+                                    @if(in_array($doc->estado, ['observado', 'rechazado']))
+                                        <div class="p-2 rounded bg-warning-subtle text-dark border border-warning-subtle small">
+                                            <strong class="d-block text-danger" style="font-size: 0.75rem;">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Motivo de {{ ucfirst($doc->estado) }}:
+                                            </strong>
+                                            <span>{{ $doc->observacion_validacion }}</span>
+                                        </div>
+                                    @elseif($doc->observacion_validacion)
                                         <span class="text-dark">{{ $doc->observacion_validacion }}</span>
                                     @else
                                         <span class="text-muted fst-italic">Sin observaciones registradas</span>
                                     @endif
                                 </td>
                                 <td class="text-end pe-3">
-                                    <div class="d-flex justify-content-end gap-1">
+                                    <div class="d-flex justify-content-end align-items-center gap-1">
+                                        {{-- Botón de descarga institucional --}}
                                         <a href="{{ route('documentos.download', $doc->id) }}" class="btn btn-sm btn-outline-primary" title="Descargar documento">
                                             <i class="bi bi-download"></i>
                                         </a>
-                                        @if(auth()->user()->isCoordinador() && $doc->estado === 'pendiente')
+
+                                        {{-- Acción para el Estudiante: Subir reemplazo si fue observado/rechazado --}}
+                                        @if($puedeAdjuntar && in_array($doc->estado, ['observado', 'rechazado']))
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="abrirReemplazoDoc({{ $doc->tipo_documento_id }})" title="Volver a adjuntar documento corregido">
+                                                <i class="bi bi-arrow-repeat me-1"></i> Corregir
+                                            </button>
+                                        @endif
+
+                                        {{-- Acciones EXCLUSIVAS de Coordinación Académica --}}
+                                        @if(auth()->user()->isCoordinador() && in_array($doc->estado, ['pendiente', 'observado']))
                                             <form action="{{ route('documentos.validar', $doc->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <input type="hidden" name="estado" value="validado">
@@ -332,7 +362,7 @@
                                                     <i class="bi bi-check-lg"></i>
                                                 </button>
                                             </form>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalRechazarDoc{{ $doc->id }}" title="Observar o rechazar">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalRechazarDoc{{ $doc->id }}" title="Observar o rechazar documento">
                                                 <i class="bi bi-x-lg"></i>
                                             </button>
                                         @endif
@@ -346,7 +376,7 @@
                                         <i class="bi bi-folder-x fs-1 text-muted opacity-50 d-block mb-2"></i>
                                         <h6 class="fw-semibold text-muted">No existen documentos adjuntos en este expediente</h6>
                                         <p class="small text-muted mb-3">Sube los requisitos documentales solicitados para proceder con la revisión académica.</p>
-                                        @if(auth()->user()->isEstudiante() || auth()->user()->isCoordinador() || auth()->user()->isAdmin())
+                                        @if($puedeAdjuntar)
                                             <button type="button" class="btn btn-sm btn-upds rounded-pill px-4" data-bs-toggle="collapse" data-bs-target="#formSubirDoc">
                                                 <i class="bi bi-cloud-arrow-up me-1"></i> Adjuntar Primer Documento
                                             </button>
@@ -495,40 +525,64 @@
     </div>
 </div>
 
-<!-- Modales para Rechazar / Observar Documentos -->
-@foreach($solicitud->documentos as $doc)
-    <div class="modal fade" id="modalRechazarDoc{{ $doc->id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow rounded-4">
-                <div class="modal-header bg-danger text-white">
-                    <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-x me-2"></i>Rechazar / Observar Documento</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- Modales para Rechazar / Observar Documentos (Exclusivo Coordinación Académica) -->
+@if(auth()->user()->isCoordinador())
+    @foreach($solicitud->documentos as $doc)
+        <div class="modal fade" id="modalRechazarDoc{{ $doc->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow rounded-4">
+                    <div class="modal-header bg-danger text-white">
+                        <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-x me-2"></i>Rechazar / Observar Documento</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ route('documentos.validar', $doc->id) }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <p class="small text-muted mb-2">
+                                Archivo: <strong>{{ $doc->nombre_original }}</strong> ({{ $doc->tipoDocumento->nombre ?? 'Documento' }})
+                            </p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Acción Resolutiva *</label>
+                                <select name="estado" class="form-select" required>
+                                    <option value="observado">Observar (Permite al estudiante corregir)</option>
+                                    <option value="rechazado">Rechazar Definitivamente</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Motivo u Observación Detallada (Obligatorio en español) *</label>
+                                <textarea name="observacion" class="form-control" rows="3" required minlength="5" placeholder="Escribe el motivo detallado en español explicando por qué el documento es observado o rechazado para conocimiento del estudiante..."></textarea>
+                                <div class="form-text small text-muted">El estudiante podrá visualizar este motivo en su expediente para realizar las correcciones necesarias.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">Confirmar Resolución</button>
+                        </div>
+                    </form>
                 </div>
-                <form action="{{ route('documentos.validar', $doc->id) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <p class="small text-muted mb-2">
-                            Archivo: <strong>{{ $doc->nombre_original }}</strong> ({{ $doc->tipoDocumento->nombre ?? 'Documento' }})
-                        </p>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Acción Resolutiva *</label>
-                            <select name="estado" class="form-select" required>
-                                <option value="observado">Observar (Permite al estudiante corregir)</option>
-                                <option value="rechazado">Rechazar Definitivamente</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Motivo u Observación Detallada *</label>
-                            <textarea name="observacion" class="form-control" rows="3" required placeholder="Indica el motivo del rechazo u observación para conocimiento del estudiante..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">Confirmar Resolución</button>
-                    </div>
-                </form>
             </div>
         </div>
-    </div>
-@endforeach
+    @endforeach
+@endif
+@endsection
+
+@section('scripts')
+<script>
+function abrirReemplazoDoc(tipoId) {
+    var collapseEl = document.getElementById('formSubirDoc');
+    if (collapseEl) {
+        var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapseEl);
+        bsCollapse.show();
+        var selectTipo = document.getElementById('selectTipoDoc');
+        if (selectTipo) {
+            selectTipo.value = tipoId;
+        }
+        collapseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var fileInput = document.getElementById('inputArchivoDoc');
+        if (fileInput) {
+            fileInput.focus();
+        }
+    }
+}
+</script>
 @endsection
