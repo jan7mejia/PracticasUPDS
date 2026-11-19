@@ -18,7 +18,7 @@ return [
     'duracion_meses' => (int) env('PRACTICAS_DURACION_MESES', 3),
 
     // Límite máximo de horas por jornada diaria (para evitar registros anómalos)
-    'max_horas_diarias' => (float) env('PRACTICAS_MAX_HORAS_DIARIAS', 8.0),
+    'max_horas_diarias' => (float) env('PRACTICAS_MAX_HORAS_DIARIAS', 4.0),
 
     // Mínimo de horas registrables por sesión
     'min_horas_registro' => (float) env('PRACTICAS_MIN_HORAS_REGISTRO', 0.5),

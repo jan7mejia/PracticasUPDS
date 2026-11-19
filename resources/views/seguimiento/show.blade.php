@@ -167,9 +167,11 @@
                                 <td class="text-truncate" style="max-width: 220px;" title="{{ $h->descripcion }}">{{ $h->descripcion }}</td>
                                 <td>
                                     <span class="badge-{{ $h->estado }}">{{ ucfirst($h->estado) }}</span>
-                                    @if($h->observacion_revision)
-                                        <i class="bi bi-info-circle ms-1 text-muted" title="{{ $h->observacion_revision }}"></i>
-                                    @endif
+                                    <button type="button" class="btn btn-link p-0 ms-1 text-primary align-baseline"
+                                            data-bs-toggle="modal" data-bs-target="#modalDetalleHora{{ $h->id }}"
+                                            title="Consultar detalle completo de la jornada">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                    </button>
                                 </td>
                                 @if(auth()->user()->isTutor())
                                     <td class="text-end text-nowrap">
@@ -209,7 +211,7 @@
                 </h6>
                 @if(auth()->user()->isCoordinador())
                     <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalNuevaActividad">
-                        <i class="bi bi-plus-lg me-1"></i> + Planificar
+                        <i class="bi bi-calendar-plus me-1"></i> Planificar Actividad
                     </button>
                 @endif
             </div>
@@ -322,8 +324,8 @@
                     <i class="bi bi-chat-left-dots text-primary me-2"></i>Observaciones y Sugerencias del Tutor
                 </h6>
                 @if(auth()->user()->isTutor() || auth()->user()->isCoordinador())
-                    <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="collapse" data-bs-target="#formNuevaObs">
-                        <i class="bi bi-plus-lg me-1"></i> + Nueva nota
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="collapse" data-bs-target="#formNuevaObs">
+                        <i class="bi bi-chat-left-text me-1"></i> Nueva nota
                     </button>
                 @endif
             </div>
@@ -372,9 +374,12 @@
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
                     <i class="bi bi-clipboard2-check text-primary me-2"></i>Evaluaciones de Seguimiento (Parciales)
                 </h6>
-                @if((auth()->user()->isTutor() || auth()->user()->isCoordinador()) && $practica->estado !== 'concluida')
+                @php
+                    $esTutorAsignado = auth()->user()->isTutor() && $practica->tutor_id && $practica->tutor_id === auth()->user()->tutor?->id;
+                @endphp
+                @if($esTutorAsignado && !in_array($practica->estado, ['concluida', 'cancelada', 'abandonada']))
                     <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalEvaluacionParcial">
-                        <i class="bi bi-plus-lg me-1"></i> + Calificar Parcial
+                        <i class="bi bi-pencil-square me-1"></i> Calificar Parcial
                     </button>
                 @endif
             </div>
@@ -574,7 +579,8 @@
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-muted small"><i class="bi bi-hourglass-split me-1"></i> Horas</span>
                                     <select name="duracion_horas" id="selectHorasJornada" class="form-select" onchange="actualizarCalculoHoras()">
-                                        @for($i = 0; $i <= (int)config('practicas.max_horas_diarias', 8); $i++)
+                                        @php $maxConfig = (int)config('practicas.max_horas_diarias', 4); @endphp
+                                        @for($i = 0; $i <= $maxConfig; $i++)
                                             <option value="{{ $i }}" {{ $i == 4 ? 'selected' : '' }}>{{ $i }} {{ $i == 1 ? 'hora' : 'horas' }}</option>
                                         @endfor
                                     </select>
@@ -606,13 +612,14 @@
                         </div>
 
                         <!-- Atajos rápidos -->
-                        <div class="d-flex align-items-center gap-1">
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
                             <span class="text-muted small me-1">Atajos rápidos:</span>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(1, 0)">1h</button>
                             <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(2, 0)">2h</button>
-                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(4, 0)">4h (Media jornada)</button>
-                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(6, 0)">6h</button>
-                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(8, 0)">8h (Máx)</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(3, 0)">3h</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(4, 0)">4h (Máx diario)</button>
                         </div>
+                        <small class="text-muted d-block mt-1">Configuración del proyecto: máximo 4 horas por jornada diaria.</small>
                     </div>
 
                     <div class="mb-3">
@@ -691,7 +698,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Calificación Final (0 a 100) *</label>
-                        <input type="number" step="0.5" name="calificacion" class="form-control" min="0" max="100" value="95" required>
+                        <input type="number" step="0.5" name="calificacion" class="form-control" min="0" max="100" value="{{ old('calificacion', optional($practica->evaluacionFinal)->calificacion ?? 0) }}" required>
+                        <small class="text-muted">La calificación inicia en 0 puntos y debe ser confirmada expresamente por el tutor asignado.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Resultado *</label>
@@ -736,7 +744,7 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small fw-semibold">Calificación (0 a 100) *</label>
-                            <input type="number" step="0.5" name="calificacion" class="form-control" min="0" max="100" value="85" required>
+                            <input type="number" step="0.5" name="calificacion" class="form-control" min="0" max="100" value="{{ old('calificacion', 0) }}" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-semibold">Resultado *</label>
@@ -788,6 +796,82 @@
                         <button type="submit" class="btn btn-sm btn-warning text-dark fw-semibold">Registrar Observación</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
+<!-- Modales de Detalle Informativo para cada Registro de Horas (RF-11) -->
+@foreach($practica->registrosHoras as $h)
+    @php
+        $hEnterasDet = floor($h->horas);
+        $minutosDet = round(($h->horas - $hEnterasDet) * 60);
+        $tiempoTextoDet = ($hEnterasDet > 0 ? "{$hEnterasDet}h" : '') . ($minutosDet > 0 ? " {$minutosDet}m" : ($hEnterasDet == 0 ? '0m' : ''));
+    @endphp
+    <div class="modal fade" id="modalDetalleHora{{ $h->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header text-white" style="background-color: var(--upds-navy);">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-info-circle me-2"></i>Detalle de Jornada de Práctica
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 small">
+                    <div class="p-3 bg-light rounded-3 mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-4 text-muted">Fecha de jornada:</div>
+                            <div class="col-sm-8 fw-bold text-dark">{{ $h->fecha->format('d/m/Y') }}</div>
+
+                            <div class="col-sm-4 text-muted">Duración registrada:</div>
+                            <div class="col-sm-8 fw-semibold text-primary">
+                                {{ $tiempoTextoDet }} <span class="text-muted fw-normal">({{ $h->horas }} hrs académicas)</span>
+                            </div>
+
+                            <div class="col-sm-4 text-muted">Estado actual:</div>
+                            <div class="col-sm-8">
+                                <span class="badge-{{ $h->estado }}">{{ ucfirst($h->estado) }}</span>
+                            </div>
+
+                            <div class="col-sm-4 text-muted">Actividad cronograma:</div>
+                            <div class="col-sm-8 text-dark">
+                                {{ $h->actividad?->titulo ?? 'Sin actividad vinculada' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted fw-semibold d-block mb-1">Descripción de tareas realizadas:</label>
+                        <div class="p-2 border rounded-2 bg-white text-secondary">
+                            {{ $h->descripcion }}
+                        </div>
+                    </div>
+
+                    <div class="p-3 border rounded-3 bg-white">
+                        <h6 class="fw-bold text-navy mb-2" style="font-size: 0.85rem;">
+                            <i class="bi bi-person-check text-primary me-1"></i>Información de Revisión y Validación
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-sm-4 text-muted">Docente revisor:</div>
+                            <div class="col-sm-8 fw-semibold text-dark">
+                                {{ $h->revisor?->nombre_completo ?? 'Pendiente de revisión por el docente tutor' }}
+                            </div>
+
+                            <div class="col-sm-4 text-muted">Fecha de revisión:</div>
+                            <div class="col-sm-8 text-dark">
+                                {{ $h->fecha_revision ? $h->fecha_revision->format('d/m/Y H:i') : 'Pendiente' }}
+                            </div>
+
+                            <div class="col-sm-4 text-muted">Observación o motivo:</div>
+                            <div class="col-sm-8 fst-italic {{ $h->estado === 'rechazada' ? 'text-danger fw-semibold' : 'text-secondary' }}">
+                                {{ $h->observacion_revision ?: 'Sin observaciones registradas' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>

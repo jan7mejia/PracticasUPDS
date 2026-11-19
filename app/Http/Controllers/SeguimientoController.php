@@ -99,7 +99,7 @@ class SeguimientoController extends Controller
             'solicitud.organizacion.responsables',
             'tutor',
             'actividades',
-            'registrosHoras' => fn($q) => $q->orderBy('fecha', 'desc'),
+            'registrosHoras' => fn($q) => $q->with(['revisor', 'actividad'])->orderBy('fecha', 'desc'),
             'informes' => fn($q) => $q->orderBy('periodo_inicio', 'desc'),
             'observaciones.tutor',
             'evaluacionesSeguimiento.tutor',
@@ -165,7 +165,7 @@ class SeguimientoController extends Controller
 
         // 2. RF-11: Permitir registrar horas únicamente en prácticas en curso
         if ($practica->estado !== 'en_curso') {
-            return back()->withErrors(['horas' => "Solo se pueden registrar horas cuando la práctica se encuentra en estado 'en curso' (Estado actual: {$practica->estado})."])->withInput();
+            return back()->withErrors(['horas' => "No puedes registrar horas en esta práctica: solo se pueden registrar horas cuando la práctica se encuentra en estado 'en curso' (Estado actual: {$practica->estado})."])->withInput();
         }
 
         // Compatibilidad: calcular horas a partir de horas y minutos si fueron enviados
@@ -176,7 +176,7 @@ class SeguimientoController extends Controller
             $request->merge(['horas' => $totalDecimal]);
         }
 
-        $maxDiarias = (float) config('practicas.max_horas_diarias', 8.0);
+        $maxDiarias = (float) config('practicas.max_horas_diarias', 4.0);
 
         $request->validate([
             'fecha' => 'required|date|before_or_equal:today',
@@ -185,52 +185,64 @@ class SeguimientoController extends Controller
             'actividad_id' => 'nullable|exists:cronograma_actividades,id',
         ], [
             'fecha.required' => 'La fecha de la jornada es obligatoria.',
-            'fecha.before_or_equal' => 'No puedes registrar horas con fechas futuras.',
+            'fecha.before_or_equal' => 'La fecha no está dentro del periodo permitido.',
             'horas.required' => 'Ingresa la cantidad de horas realizadas.',
             'horas.min' => 'El tiempo mínimo por jornada debe ser de al menos 30 minutos (0.5 hrs).',
-            'horas.max' => "El límite máximo por jornada diaria es de {$maxDiarias} horas.",
+            'horas.max' => "El máximo diario es de {$maxDiarias} horas.",
             'descripcion.required' => 'Describe las actividades realizadas durante la jornada.',
             'descripcion.min' => 'La descripción debe tener al menos 5 caracteres.',
         ]);
 
         // 3. Validar que la fecha esté dentro del periodo de la práctica (si tiene fecha de inicio)
         if ($practica->fecha_inicio && $request->fecha < $practica->fecha_inicio->format('Y-m-d')) {
-            return back()->withErrors(['fecha' => "La fecha de la jornada no puede ser anterior al inicio de la práctica ({$practica->fecha_inicio->format('d/m/Y')})."])->withInput();
+            return back()->withErrors(['fecha' => "La fecha no está dentro del periodo permitido: no puede ser anterior al inicio de la práctica ({$practica->fecha_inicio->format('d/m/Y')})."])->withInput();
+        }
+        if ($practica->fecha_fin_real && $request->fecha > $practica->fecha_fin_real->format('Y-m-d')) {
+            return back()->withErrors(['fecha' => "La fecha no está dentro del periodo permitido: la práctica concluyó formalmente el {$practica->fecha_fin_real->format('d/m/Y')}."])->withInput();
         }
 
         // 4. RF-11: Controlar suma diaria (máximo horas diarias según configuración institucional)
-        $horasDelDia = RegistroHora::where('practica_id', $practica->id)
-            ->whereDate('fecha', $request->fecha)
-            ->whereIn('estado', ['pendiente', 'validada'])
-            ->sum('horas');
+        // Usar transacción y lockForUpdate para controlar concurrencia de operaciones simultáneas
+        return DB::transaction(function () use ($practica, $request, $maxDiarias) {
+            $horasDelDia = (float) RegistroHora::where('practica_id', $practica->id)
+                ->whereDate('fecha', $request->fecha)
+                ->whereIn('estado', ['pendiente', 'validada'])
+                ->lockForUpdate()
+                ->sum('horas');
 
-        if (($horasDelDia + (float)$request->horas) > $maxDiarias) {
-            $disponibles = max(0, $maxDiarias - $horasDelDia);
-            return back()->withErrors(['horas' => "El total de horas para el día {$request->fecha} superaría el límite de {$maxDiarias} horas diarias. Horas acumuladas: {$horasDelDia}h (máximo disponible: {$disponibles}h)."])->withInput();
-        }
+            if (($horasDelDia + (float)$request->horas) > $maxDiarias) {
+                $disponibles = max(0, $maxDiarias - $horasDelDia);
+                if ($horasDelDia > 0) {
+                    $msg = "Ya registraste {$horasDelDia} horas este día. Solo puedes añadir {$disponibles} hora(s).";
+                } else {
+                    $msg = "El máximo diario es de {$maxDiarias} horas.";
+                }
+                return back()->withErrors(['horas' => $msg])->withInput();
+            }
 
-        // 5. RF-11: Rechazar duplicaciones incompatibles (misma fecha y descripción idéntica)
-        $duplicado = RegistroHora::where('practica_id', $practica->id)
-            ->whereDate('fecha', $request->fecha)
-            ->where('descripcion', trim($request->descripcion))
-            ->exists();
+            // 5. RF-11: Rechazar duplicaciones incompatibles (misma fecha y descripción idéntica)
+            $duplicado = RegistroHora::where('practica_id', $practica->id)
+                ->whereDate('fecha', $request->fecha)
+                ->where('descripcion', trim($request->descripcion))
+                ->exists();
 
-        if ($duplicado) {
-            return back()->withErrors(['descripcion' => 'Ya existe un registro de horas con idéntica descripción y fecha en esta práctica.'])->withInput();
-        }
+            if ($duplicado) {
+                return back()->withErrors(['descripcion' => 'Ya existe un registro de horas con idéntica descripción y fecha en esta práctica.'])->withInput();
+            }
 
-        // 6. Guardar inicialmente como pendiente
-        RegistroHora::create([
-            'practica_id' => $practica->id,
-            'actividad_id' => $request->actividad_id,
-            'fecha' => $request->fecha,
-            'horas' => $request->horas,
-            'descripcion' => trim($request->descripcion),
-            'estado' => 'pendiente',
-            'created_at' => now(),
-        ]);
+            // 6. Guardar inicialmente como pendiente
+            RegistroHora::create([
+                'practica_id' => $practica->id,
+                'actividad_id' => $request->actividad_id,
+                'fecha' => $request->fecha,
+                'horas' => $request->horas,
+                'descripcion' => trim($request->descripcion),
+                'estado' => 'pendiente',
+                'created_at' => now(),
+            ]);
 
-        return back()->with('success', 'Jornada de horas registrada correctamente en estado pendiente.');
+            return back()->with('success', 'Jornada registrada.');
+        });
     }
 
     public function validarHora(Request $request, RegistroHora $hora)
@@ -634,12 +646,17 @@ class SeguimientoController extends Controller
     {
         $user = Auth::user();
 
+        // RF-13: Solo el docente tutor asignado puede calificar parciales
         if (!$user->isTutor()) {
             abort(403, 'Acción no autorizada. Las evaluaciones parciales solo pueden ser registradas por el docente tutor asignado.');
         }
 
-        if ($practica->tutor_id !== $user->tutor?->id) {
+        if (!$practica->tutor_id || $practica->tutor_id !== $user->tutor?->id) {
             abort(403, 'No tienes autorización para registrar evaluaciones en una práctica que no supervisas.');
+        }
+
+        if (in_array($practica->estado, ['concluida', 'cancelada', 'abandonada'])) {
+            return back()->withErrors(['evaluacion' => "No es posible registrar evaluaciones parciales en una práctica con estado '{$practica->estado}'."]);
         }
 
         $request->validate([
@@ -648,6 +665,13 @@ class SeguimientoController extends Controller
             'calificacion' => 'required|numeric|between:0,100',
             'resultado' => 'required|string|max:50',
             'comentario' => 'nullable|string|max:1000',
+        ], [
+            'periodo.required' => 'El período de evaluación es obligatorio.',
+            'fecha.required' => 'La fecha de la evaluación es obligatoria.',
+            'calificacion.required' => 'La calificación es obligatoria.',
+            'calificacion.numeric' => 'La calificación debe ser un valor numérico.',
+            'calificacion.between' => 'La calificación debe encontrarse entre 0 y 100 puntos.',
+            'resultado.required' => 'El resultado de la evaluación es obligatorio.',
         ]);
 
         EvaluacionSeguimiento::create([
@@ -686,6 +710,8 @@ class SeguimientoController extends Controller
             'comentario' => 'required|string|min:5|max:1000',
         ], [
             'calificacion.required' => 'Ingresa la calificación de la evaluación final (0 a 100).',
+            'calificacion.numeric' => 'La calificación debe ser un valor numérico.',
+            'calificacion.between' => 'La calificación final debe encontrarse entre 0 y 100 puntos.',
             'resultado.required' => 'Selecciona el resultado de la evaluación (Aprobado o Reprobado).',
             'comentario.required' => 'Ingresa el comentario u opinión evaluativa sobre el desempeño del estudiante.',
         ]);

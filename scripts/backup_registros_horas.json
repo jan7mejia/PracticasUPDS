@@ -1,0 +1,93 @@
+[
+    {
+        "id": 1,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-03-14",
+        "horas": "20.00",
+        "descripcion": "Levantamiento de especificaciones técnicas con clientes",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-03-15 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 2,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-03-21",
+        "horas": "20.00",
+        "descripcion": "Diseño de diagramas de entidad-relación y casos de uso",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-03-22 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 3,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-03-28",
+        "horas": "20.00",
+        "descripcion": "Modelado físico en MySQL e implementación de migraciones",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-03-29 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 4,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-04-07",
+        "horas": "20.00",
+        "descripcion": "Construcción de módulos de autenticación y roles de usuario",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-04-08 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 5,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-04-14",
+        "horas": "20.00",
+        "descripcion": "Desarrollo de controladores y endpoints de consultas",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-04-15 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 6,
+        "practica_id": 1,
+        "actividad_id": 1,
+        "fecha": "2026-04-21",
+        "horas": "20.00",
+        "descripcion": "Integración de vistas Blade y pruebas unitarias",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-04-22 00:00:00",
+        "observacion_revision": "Horas verificadas y aprobadas por tutor.",
+        "created_at": null
+    },
+    {
+        "id": 7,
+        "practica_id": 1,
+        "actividad_id": null,
+        "fecha": "2026-11-19",
+        "horas": "1.00",
+        "descripcion": "esta es un prueba",
+        "estado": "validada",
+        "revisado_por_tutor_id": 1,
+        "fecha_revision": "2026-11-19 06:48:01",
+        "observacion_revision": null,
+        "created_at": "2026-11-19 06:40:13"
+    }
+]

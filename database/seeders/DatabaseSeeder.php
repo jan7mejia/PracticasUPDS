@@ -403,7 +403,7 @@ class DatabaseSeeder extends Seeder
                 'coordinador_id' => $coord->id,
                 'tutor_id' => $tutor1->id,
                 'fecha_inicio' => '2026-03-10',
-                'fecha_fin_prevista' => '2026-06-15',
+                'fecha_fin_prevista' => '2026-12-31',
                 'horas_objetivo' => 240.00,
                 'estado' => 'en_curso',
                 'observacion_cierre' => null,
@@ -438,27 +438,54 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Registros de horas (suman 120 horas validadas)
+        // Registros de horas (30 jornadas de 4 horas diarias = 120 horas validadas coherentes con el límite de 4h/día)
         $horasData = [
-            ['fecha' => '2026-03-14', 'horas' => 20.00, 'desc' => 'Levantamiento de especificaciones técnicas con clientes'],
-            ['fecha' => '2026-03-21', 'horas' => 20.00, 'desc' => 'Diseño de diagramas de entidad-relación y casos de uso'],
-            ['fecha' => '2026-03-28', 'horas' => 20.00, 'desc' => 'Modelado físico en MySQL e implementación de migraciones'],
-            ['fecha' => '2026-04-07', 'horas' => 20.00, 'desc' => 'Construcción de módulos de autenticación y roles de usuario'],
-            ['fecha' => '2026-04-14', 'horas' => 20.00, 'desc' => 'Desarrollo de controladores y endpoints de consultas'],
-            ['fecha' => '2026-04-21', 'horas' => 20.00, 'desc' => 'Integración de vistas Blade y pruebas unitarias'],
+            // Actividad 1: Análisis y modelado (15 jornadas x 4h = 60h)
+            ['fecha' => '2026-03-10', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Levantamiento de especificaciones técnicas con usuarios clave'],
+            ['fecha' => '2026-03-11', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Entrevistas con supervisores de área y relevamiento de procesos'],
+            ['fecha' => '2026-03-12', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Definición de requisitos funcionales y casos de uso'],
+            ['fecha' => '2026-03-13', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Diseño de diagramas de casos de uso y matriz de trazabilidad'],
+            ['fecha' => '2026-03-16', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Modelado conceptual de datos y diagramas entidad-relación'],
+            ['fecha' => '2026-03-17', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Normalización de tablas a tercera forma normal (3FN)'],
+            ['fecha' => '2026-03-18', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Diseño de diccionario de datos y restricciones de integridad'],
+            ['fecha' => '2026-03-19', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Modelado físico en MySQL y creación de scripts DDL'],
+            ['fecha' => '2026-03-20', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Implementación y ejecución de migraciones de base de datos'],
+            ['fecha' => '2026-03-23', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Poblado de catálogos iniciales y seeders de prueba'],
+            ['fecha' => '2026-03-24', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Pruebas de integridad referencial y disparadores'],
+            ['fecha' => '2026-03-25', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Optimización de índices en tablas de alta concurrencia'],
+            ['fecha' => '2026-03-26', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Elaboración de vistas SQL para reportes analíticos'],
+            ['fecha' => '2026-03-27', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Documentación técnica de la arquitectura de datos'],
+            ['fecha' => '2026-03-30', 'horas' => 4.00, 'act' => $act1->id, 'desc' => 'Revisión final y entrega del modelo relacional completado'],
+
+            // Actividad 2: Desarrollo API e interfaces (15 jornadas x 4h = 60h)
+            ['fecha' => '2026-03-31', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Configuración de entorno de desarrollo y dependencias'],
+            ['fecha' => '2026-04-01', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Construcción de módulos de autenticación y control de roles'],
+            ['fecha' => '2026-04-02', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Implementación de middlewares de autorización y permisos'],
+            ['fecha' => '2026-04-03', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Desarrollo de controladores y endpoints de consulta general'],
+            ['fecha' => '2026-04-06', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Programación de servicios backend y validación de peticiones'],
+            ['fecha' => '2026-04-07', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Desarrollo de formularios de registro y actualización'],
+            ['fecha' => '2026-04-08', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Integración de vistas Blade responsivas con Bootstrap'],
+            ['fecha' => '2026-04-09', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Diseño de interfaces de usuario y componentes visuales'],
+            ['fecha' => '2026-04-10', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Validaciones en cliente y servidor con mensajes en español'],
+            ['fecha' => '2026-04-13', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Conexión asíncrona mediante AJAX y debounce para búsquedas'],
+            ['fecha' => '2026-04-14', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Desarrollo de vistas de seguimiento y bitácora de jornada'],
+            ['fecha' => '2026-04-15', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Implementación de reportes y exportación de datos'],
+            ['fecha' => '2026-04-16', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Pruebas unitarias de servicios y controladores backend'],
+            ['fecha' => '2026-04-17', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Pruebas de integración de flujo de usuario y corrección de bugs'],
+            ['fecha' => '2026-04-20', 'horas' => 4.00, 'act' => $act2->id, 'desc' => 'Despliegue en entorno de pruebas y revisión de rendimiento'],
         ];
 
         foreach ($horasData as $hd) {
             RegistroHora::updateOrCreate(
                 ['practica_id' => $practicaJuan->id, 'fecha' => $hd['fecha']],
                 [
-                    'actividad_id' => $act1->id,
+                    'actividad_id' => $hd['act'],
                     'horas' => $hd['horas'],
                     'descripcion' => $hd['desc'],
                     'estado' => 'validada',
                     'revisado_por_tutor_id' => $tutor1->id,
                     'fecha_revision' => date('Y-m-d H:i:s', strtotime($hd['fecha'] . ' +1 day')),
-                    'observacion_revision' => 'Horas verificadas y aprobadas por tutor.',
+                    'observacion_revision' => 'Jornada de 4h revisada y aprobada por tutor.',
                 ]
             );
         }
