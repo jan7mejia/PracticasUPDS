@@ -32,10 +32,17 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            margin: 0;
+            padding: 0;
         }
 
-        /* Top Bar UPDS */
+        /* Top Bar UPDS - Siempre arriba y sticky */
         .upds-navbar {
+            order: 0;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
             background-color: var(--upds-navy);
             padding: 0.65rem 1.5rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.15);
@@ -246,13 +253,32 @@
             box-shadow: 0 4px 10px rgba(0, 86, 179, 0.25);
         }
 
+        main {
+            order: 1;
+            flex: 1 0 auto;
+            width: 100%;
+        }
+
         footer {
+            order: 2;
+            flex-shrink: 0;
             margin-top: auto;
             background: #ffffff;
             border-top: 1px solid var(--upds-card-border);
             padding: 1rem 0;
             font-size: 0.82rem;
             color: var(--upds-text-muted);
+        }
+
+        /* Separación uniforme de tarjetas y bordes profesionales */
+        .card {
+            border-radius: 1rem;
+            border: 1px solid rgba(226, 232, 240, 0.85);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .card-header {
+            border-top-left-radius: 1rem !important;
+            border-top-right-radius: 1rem !important;
         }
     </style>
     @yield('styles')
@@ -573,7 +599,7 @@
                 });
             });
 
-            // 3. Buscador inteligente con retardo (debounce 350ms), control de longitud >= 3 y soporte Enter
+            // 3. Buscador inteligente con retardo (debounce 350ms), control de longitud >= 2 y soporte Enter
             document.querySelectorAll('input[data-auto-search]').forEach(function(input) {
                 var timer = null;
                 var form = input.closest('form');
@@ -589,13 +615,13 @@
                     }
                 });
 
-                // Control reactivo con debounce y validación de longitud (mínimo 3 caracteres o vacío)
+                // Control reactivo con debounce y validación de longitud (mínimo 2 caracteres o vacío)
                 input.addEventListener('input', function() {
                     clearTimeout(timer);
                     var query = input.value.trim();
 
-                    // Si escribe 1 o 2 caracteres, no enviar búsquedas innecesarias al servidor
-                    if (query.length > 0 && query.length < 3) {
+                    // Si escribe 1 carácter, no enviar búsquedas incompletas al servidor
+                    if (query.length === 1) {
                         return;
                     }
 
@@ -603,7 +629,7 @@
                         var pageInput = form.querySelector('input[name="page"], input[name="sol_page"], input[name="doc_page"]');
                         if (pageInput) pageInput.value = 1;
 
-                        if (query.length >= 3 || query.length === 0) {
+                        if (query.length >= 2 || query.length === 0) {
                             form.submit();
                         }
                     }, 350);

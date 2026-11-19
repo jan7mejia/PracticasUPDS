@@ -361,7 +361,7 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════════════ -->
-<!-- SECCIÓN 4: EVALUACIONES Y CIERRE DE PRÁCTICA -->
+<!-- SECCIÓN 4: EVALUACIONES (PARCIALES, VALORACIÓN ORGANIZACIÓN Y EVALUACIÓN FINAL) -->
 <!-- ══════════════════════════════════════════════════════════════════════════════ -->
 <div class="row g-4 mb-4">
     <!-- Evaluaciones Parciales y Valoración de la Organización -->
@@ -446,68 +446,78 @@
         </div>
     </div>
 
-    <!-- Evaluación Final y Cierre de Práctica -->
+    <!-- Evaluación Final del Docente Tutor -->
     <div class="col-12 col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 d-flex flex-column justify-content-between">
-            <div>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                        <i class="bi bi-award text-primary me-2"></i>Evaluación Final del Tutor y Cierre
-                    </h6>
-                </div>
-
-                @if($practica->evaluacionFinal)
-                    <div class="p-3 bg-light rounded-3 small mb-3">
-                        <div class="row g-2">
-                            <div class="col-sm-4 text-muted">Criterio:</div>
-                            <div class="col-sm-8 fw-semibold">Desempeño general y cumplimiento</div>
-
-                            <div class="col-sm-4 text-muted">Calificación:</div>
-                            <div class="col-sm-8 fw-bold text-success fs-6">{{ $practica->evaluacionFinal->calificacion }} / 100</div>
-
-                            <div class="col-sm-4 text-muted">Resultado final:</div>
-                            <div class="col-sm-8"><span class="badge-activo">{{ $practica->evaluacionFinal->resultado }}</span></div>
-
-                            <div class="col-sm-4 text-muted">Comentario Tutor:</div>
-                            <div class="col-sm-8 fst-italic text-secondary">{{ $practica->evaluacionFinal->comentario }}</div>
-                        </div>
-                    </div>
-                @else
-                    <div class="p-3 bg-light rounded-3 small mb-3 text-center text-muted">
-                        <i class="bi bi-award fs-2 d-block mb-1 opacity-50"></i>
-                        <div><strong>Evaluación final pendiente</strong></div>
-                        <small>El docente tutor asignado registrará la calificación final tras completar las horas e informes requeridos.</small>
-                    </div>
-                @endif
-
-                @if(auth()->user()->isTutor() && $practica->estado !== 'concluida')
-                    <button type="button" class="btn btn-upds w-100 mb-3" data-bs-toggle="modal" data-bs-target="#modalEvaluacionFinal">
-                        <i class="bi bi-check2-circle me-1"></i> Registrar evaluación final
-                    </button>
-                @endif
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                    <i class="bi bi-award text-primary me-2"></i>Evaluación Final del Tutor
+                </h6>
             </div>
 
-            @if(auth()->user()->isCoordinador() && !in_array($practica->estado, ['concluida', 'cancelada', 'abandonada']))
-                <div class="pt-3 border-top">
-                    <h6 class="fw-bold small text-navy mb-2">Resolución y Cierre de Práctica (Coordinación)</h6>
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-sm btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConcluirPractica">
-                            <i class="bi bi-award me-1"></i> Finalizar y Concluir Práctica
-                        </button>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-warning text-dark w-50" data-bs-toggle="modal" data-bs-target="#modalAbandonarPractica">
-                                <i class="bi bi-slash-circle me-1"></i> Abandono
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger w-50" data-bs-toggle="modal" data-bs-target="#modalCancelarPractica">
-                                <i class="bi bi-x-circle me-1"></i> Cancelar
-                            </button>
-                        </div>
+            @if($practica->evaluacionFinal)
+                <div class="p-3 bg-light rounded-3 small mb-3">
+                    <div class="row g-2">
+                        <div class="col-sm-4 text-muted">Criterio:</div>
+                        <div class="col-sm-8 fw-semibold">Desempeño general y cumplimiento</div>
+
+                        <div class="col-sm-4 text-muted">Calificación:</div>
+                        <div class="col-sm-8 fw-bold text-success fs-6">{{ $practica->evaluacionFinal->calificacion }} / 100</div>
+
+                        <div class="col-sm-4 text-muted">Resultado final:</div>
+                        <div class="col-sm-8"><span class="badge-activo">{{ $practica->evaluacionFinal->resultado }}</span></div>
+
+                        <div class="col-sm-4 text-muted">Comentario Tutor:</div>
+                        <div class="col-sm-8 fst-italic text-secondary">{{ $practica->evaluacionFinal->comentario }}</div>
                     </div>
                 </div>
+            @else
+                <div class="p-4 bg-light rounded-3 small mb-3 text-center text-muted">
+                    <i class="bi bi-award fs-1 d-block mb-2 opacity-50"></i>
+                    <div class="fw-bold text-dark fs-6">Evaluación Final Pendiente</div>
+                    <p class="small text-muted mt-1 mb-0">El docente tutor asignado registrará la calificación final tras completar las horas reglamentarias e informes académicos.</p>
+                </div>
+            @endif
+
+            @if(auth()->user()->isTutor() && $practica->estado !== 'concluida')
+                <button type="button" class="btn btn-upds w-100 rounded-pill py-2 fw-semibold mt-auto" data-bs-toggle="modal" data-bs-target="#modalEvaluacionFinal">
+                    <i class="bi bi-check2-circle me-1"></i> Registrar Evaluación Final del Tutor
+                </button>
             @endif
         </div>
     </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 5: RESOLUCIÓN Y CIERRE DE PRÁCTICA (COORDINACIÓN ACADÉMICA) -->
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+@if(auth()->user()->isCoordinador() && !in_array($practica->estado, ['concluida', 'cancelada', 'abandonada']))
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4" style="background: linear-gradient(to right, #ffffff, #f8fafc); border-left: 4px solid var(--upds-primary) !important;">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h6 class="fw-bold text-navy mb-1" style="color: var(--upds-navy);">
+                        <i class="bi bi-shield-check text-primary me-2"></i>Resolución y Cierre de Práctica (Coordinación Académica)
+                    </h6>
+                    <small class="text-muted">Dictamen resolutivo final del trámite una vez revisado el cómputo de horas, informes y evaluaciones.</small>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalConcluirPractica">
+                        <i class="bi bi-award me-1"></i> Finalizar y Concluir Práctica
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAbandonarPractica">
+                        <i class="bi bi-slash-circle me-1"></i> Declarar Abandono
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCancelarPractica">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar Práctica
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 <!-- Modal Asignar Tutor -->
 <div class="modal fade" id="modalAsignarTutor" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

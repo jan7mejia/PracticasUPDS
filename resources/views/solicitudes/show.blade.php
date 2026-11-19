@@ -1,213 +1,338 @@
 @extends('layouts.app')
 
-@section('title', 'Detalle de Solicitud - UPDSonline')
+@section('title', 'Expediente de Solicitud S-00' . $solicitud->id . ' - UPDSonline')
 
 @section('content')
+<!-- Encabezado de la Solicitud -->
 <div class="mb-4">
-    <a href="{{ route('solicitudes.index') }}" class="text-decoration-none text-muted small">
-        <i class="bi bi-arrow-left"></i> Volver a solicitudes
-    </a>
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mt-2 gap-3">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <a href="{{ route('solicitudes.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Volver a solicitudes
+        </a>
+        <span class="badge bg-light text-secondary border rounded-pill px-3 py-1">
+            <i class="bi bi-folder2-open me-1 text-primary"></i> Trámite Académico
+        </span>
+    </div>
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 bg-white p-4 rounded-4 shadow-sm border">
         <div>
-            <h4 class="fw-bold text-navy mb-1" style="color: var(--upds-navy);">
-                Expediente de Solicitud: S-00{{ $solicitud->id }}
-            </h4>
-            <span class="text-muted small">Presentada el {{ $solicitud->fecha_solicitud->format('d/m/Y H:i') }}</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h4 class="fw-bold mb-0" style="color: var(--upds-navy);">
+                    Expediente de Solicitud: S-00{{ $solicitud->id }}
+                </h4>
+                <span class="badge-{{ $solicitud->estado }} fs-6 px-3 py-1">
+                    {{ ucfirst(str_replace('_', ' ', $solicitud->estado)) }}
+                </span>
+            </div>
+            <div class="text-muted small">
+                <i class="bi bi-calendar3 me-1"></i> Presentada el {{ $solicitud->fecha_solicitud ? $solicitud->fecha_solicitud->format('d/m/Y H:i') : '—' }}
+                &bull; Período: <strong class="text-dark">{{ $solicitud->periodo->codigo ?? 'Período Vigente' }}</strong>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge-{{ $solicitud->estado }} fs-6 px-3 py-2">
-                {{ ucfirst(str_replace('_', ' ', $solicitud->estado)) }}
-            </span>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             @if($solicitud->practica)
-                <a href="{{ route('seguimiento.show', $solicitud->practica->id) }}" class="btn btn-sm btn-success">
+                <a href="{{ route('seguimiento.show', $solicitud->practica->id) }}" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
                     <i class="bi bi-arrow-up-right-square me-1"></i> Ir al Seguimiento
                 </a>
+            @endif
+
+            @if(auth()->user()->isCoordinador())
+                @if(in_array($solicitud->estado, ['presentada', 'en_revision', 'observada']))
+                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAprobarSol">
+                        <i class="bi bi-check-circle me-1"></i> Aprobar Solicitud
+                    </button>
+                    <button type="button" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalObservarSol">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Observar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalRechazarSol">
+                        <i class="bi bi-x-circle me-1"></i> Rechazar
+                    </button>
+                @endif
             @endif
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <!-- Columna Izquierda: Información de la Solicitud -->
-    <div class="col-12 col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <h6 class="fw-bold text-navy mb-3">Información del Postulante</h6>
-            <div class="small">
-                <div class="mb-2 text-muted">Estudiante:</div>
-                <div class="fw-bold mb-3">{{ $solicitud->estudiante->nombre_completo }}</div>
-
-                <div class="mb-2 text-muted">RU / Carrera:</div>
-                <div class="fw-semibold mb-3"><code>{{ $solicitud->estudiante->ru }}</code> &bull; {{ $solicitud->estudiante->carrera->nombre }}</div>
-
-                <div class="mb-2 text-muted">Semestre:</div>
-                <div class="fw-semibold mb-3">{{ $solicitud->estudiante->semestre }}° Semestre</div>
+<!-- Primera Sección: Información General (3 Tarjetas Equilibradas) -->
+<div class="row g-4 mb-4">
+    <!-- Tarjeta 1: Datos del Estudiante -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    <i class="bi bi-person-fill fs-5"></i>
+                </div>
+                <h6 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">Datos del Estudiante</h6>
             </div>
 
-            <hr>
-
-            <h6 class="fw-bold text-navy mb-3">Organización Receptora</h6>
             <div class="small">
-                <div class="mb-2 text-muted">Empresa / Institución:</div>
-                <div class="fw-bold mb-3 text-primary">{{ $solicitud->organizacion->nombre }}</div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">Nombre completo:</span>
+                    <strong class="text-dark fs-6">{{ $solicitud->estudiante->nombre_completo }}</strong>
+                </div>
 
-                <div class="mb-2 text-muted">Sector / Rubro:</div>
-                <div class="fw-semibold mb-3">{{ $solicitud->organizacion->rubro }}</div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">Registro Universitario (RU):</span>
+                    <code class="fs-6 fw-bold text-primary">{{ $solicitud->estudiante->ru }}</code>
+                </div>
 
-                <div class="mb-2 text-muted">Contacto Empresa:</div>
-                <div class="fw-semibold mb-3">{{ $solicitud->organizacion->responsables->first()?->nombre_completo ?? 'No asignado' }}</div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">Carrera:</span>
+                    <span class="fw-semibold text-dark">{{ $solicitud->estudiante->carrera->nombre ?? 'Sin carrera' }}</span>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted d-block">Semestre actual:</span>
+                    <span class="badge bg-light text-dark border">{{ $solicitud->estudiante->semestre }}° Semestre</span>
+                </div>
+
+                @if($solicitud->estudiante->telefono)
+                    <div class="mb-3">
+                        <span class="text-muted d-block">Contacto / Celular:</span>
+                        <span class="text-dark">{{ $solicitud->estudiante->telefono }}</span>
+                    </div>
+                @endif
             </div>
 
-            <hr>
+            <div class="mt-auto pt-3 border-top">
+                <a href="{{ route('estudiantes.show', $solicitud->estudiante_id) }}" class="btn btn-sm btn-outline-primary w-100 rounded-pill" target="_blank">
+                    <i class="bi bi-card-checklist me-1"></i> Ver Ficha Académica
+                </a>
+            </div>
+        </div>
+    </div>
 
-            <h6 class="fw-bold text-navy mb-2">Requisitos Académicos</h6>
+    <!-- Tarjeta 2: Organización Receptora -->
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="rounded-circle bg-info-subtle text-info p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    <i class="bi bi-building fs-5"></i>
+                </div>
+                <h6 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">Organización Receptora</h6>
+            </div>
+
+            <div class="small">
+                <div class="mb-2">
+                    <span class="text-muted d-block">Empresa o Institución:</span>
+                    <strong class="text-primary fs-6">{{ $solicitud->organizacion->nombre }}</strong>
+                </div>
+
+                <div class="mb-2">
+                    <span class="text-muted d-block">Sector / Rubro:</span>
+                    <span class="fw-semibold text-dark">{{ $solicitud->organizacion->rubro }}</span>
+                </div>
+
+                <div class="mb-2">
+                    <span class="text-muted d-block">Dirección:</span>
+                    <span class="text-secondary">{{ $solicitud->organizacion->direccion ?? 'Dirección institucional no especificada' }}</span>
+                </div>
+
+                <div class="mb-2">
+                    <span class="text-muted d-block">Responsable de contacto:</span>
+                    <span class="fw-semibold text-dark">
+                        {{ $solicitud->organizacion->responsables->first()?->nombre_completo ?? 'No asignado aún' }}
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted d-block">Teléfono de contacto:</span>
+                    <span class="text-dark">
+                        {{ $solicitud->organizacion->telefono ?? ($solicitud->organizacion->responsables->first()?->telefono ?? 'No registrado') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-3 border-top">
+                <span class="badge bg-light text-secondary border w-100 py-2 text-center d-block">
+                    <i class="bi bi-shield-check text-success me-1"></i> Entidad registrada en UPDS
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjeta 3: Información de Solicitud y Requisitos -->
+    <div class="col-12 col-md-12 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="rounded-circle bg-warning-subtle text-warning p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    <i class="bi bi-clipboard2-check fs-5"></i>
+                </div>
+                <h6 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">Parámetros y Requisitos</h6>
+            </div>
+
             @php
                 $reqsObligatorios = $solicitud->estudiante->requisitos->filter(fn($r) => $r->requisito && $r->requisito->obligatorio);
                 $cumplidos = $reqsObligatorios->where('estado', 'cumple')->count();
                 $totalOblig = $reqsObligatorios->count();
             @endphp
-            <div class="small mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Obligatorios cumplidos:</span>
-                    <strong>{{ $cumplidos }} de {{ $totalOblig }}</strong>
-                </div>
-                @if($totalOblig > 0 && $cumplidos === $totalOblig)
-                    <span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1">
-                        <i class="bi bi-check-circle me-1"></i> Requisitos Habilitados
-                    </span>
-                @else
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1">
-                        <i class="bi bi-exclamation-triangle me-1"></i> Requisitos Pendientes
-                    </span>
-                @endif
-                <a href="{{ route('estudiantes.show', $solicitud->estudiante_id) }}" class="btn btn-xs btn-outline-primary w-100 mt-2" target="_blank">
-                    <i class="bi bi-card-checklist me-1"></i> Verificar Ficha del Estudiante
-                </a>
-            </div>
 
-            @if(auth()->user()->isCoordinador())
-                <hr>
-                <h6 class="fw-bold text-navy mb-3">Acciones de Coordinación</h6>
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-success btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAprobarSol">
-                        <i class="bi bi-check-circle me-1"></i> Aprobar Solicitud e Iniciar Práctica
-                    </button>
-                    <button type="button" class="btn btn-warning text-dark btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalObservarSol">
-                        <i class="bi bi-exclamation-triangle me-1"></i> Observar Solicitud
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalRechazarSol">
-                        <i class="bi bi-x-circle me-1"></i> Rechazar Solicitud
-                    </button>
+            <div class="small">
+                <div class="mb-2">
+                    <span class="text-muted d-block">Período Académico:</span>
+                    <strong class="text-dark">{{ $solicitud->periodo->nombre ?? ($solicitud->periodo->codigo ?? 'Período Activo') }}</strong>
                 </div>
-            @endif
-        </div>
 
-        <!-- Historial de Auditoría / Trazabilidad de Estados -->
-        <div class="card border-0 shadow-sm rounded-4 p-4">
-            <h6 class="fw-bold text-navy mb-3">Historial de Trazabilidad</h6>
-            <div class="timeline small">
-                @forelse($solicitud->historial as $h)
-                    <div class="border-start border-2 border-primary ps-3 pb-3 position-relative">
-                        <div class="fw-bold text-dark">
-                            {{ ucfirst(str_replace('_', ' ', $h->estado_nuevo)) }}
-                            @if($h->estado_anterior && $h->estado_anterior !== $h->estado_nuevo)
-                                <small class="text-muted fw-normal ms-1">← {{ ucfirst(str_replace('_', ' ', $h->estado_anterior)) }}</small>
-                            @endif
-                        </div>
-                        <div class="text-muted" style="font-size: 0.75rem;">
-                            {{ $h->fecha_cambio->format('d/m/Y H:i') }} &bull; Por: {{ $h->usuario->name }}
-                        </div>
-                        @if($h->motivo)
-                            <div class="mt-1 p-2 bg-light rounded text-secondary" style="font-size: 0.8rem;">
-                                {{ $h->motivo }}
-                            </div>
+                <div class="mb-2">
+                    <span class="text-muted d-block">Modalidad de práctica:</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        {{ ucfirst($solicitud->modalidad ?? 'Presencial') }}
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted d-block">Requisitos Académicos Obligatorios:</span>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <strong>{{ $cumplidos }} de {{ $totalOblig }} cumplidos</strong>
+                        @if($totalOblig > 0 && $cumplidos === $totalOblig)
+                            <span class="badge bg-success text-white rounded-pill px-2">Habilitado</span>
+                        @else
+                            <span class="badge bg-warning text-dark rounded-pill px-2">Pendiente</span>
                         @endif
                     </div>
-                @empty
-                    <div class="text-muted small">Sin cambios de estado registrados.</div>
-                @endforelse
+                </div>
+
+                <div class="mb-2">
+                    <span class="text-muted d-block">Observaciones de la Solicitud:</span>
+                    <div class="p-2 bg-light rounded text-secondary" style="font-size: 0.82rem;">
+                        {{ $solicitud->observaciones ?? 'Sin observaciones iniciales registradas.' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-3 border-top">
+                @if($solicitud->practica && $solicitud->practica->tutor)
+                    <div class="small text-muted">
+                        Tutor: <strong class="text-dark">{{ $solicitud->practica->tutor->nombre_completo }}</strong>
+                    </div>
+                @else
+                    <div class="small text-muted fst-italic">
+                        Tutor asignable tras la aprobación formal.
+                    </div>
+                @endif
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Columna Derecha: Documentos del Expediente -->
-    <div class="col-12 col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-paperclip text-primary me-2"></i>Documentos Adjuntos en Expediente
-                </h5>
+<!-- Segunda Sección: Documentos Adjuntos en Expediente (ANCHO COMPLETO) -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="bi bi-paperclip fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">
+                            Documentos Adjuntos en Expediente
+                        </h5>
+                        <small class="text-muted">
+                            {{ $solicitud->documentos->count() }} {{ $solicitud->documentos->count() === 1 ? 'documento adjuntado' : 'documentos adjuntados' }}
+                        </small>
+                    </div>
+                </div>
+
                 @if(auth()->user()->isEstudiante() || auth()->user()->isCoordinador() || auth()->user()->isAdmin())
-                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#formSubirDoc">
-                    <i class="bi bi-cloud-arrow-up me-1"></i> + Adjuntar Documento
-                </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" data-bs-toggle="collapse" data-bs-target="#formSubirDoc">
+                        <i class="bi bi-cloud-arrow-up me-1"></i> + Adjuntar Documento
+                    </button>
                 @endif
             </div>
 
-            <!-- Formulario colapsable para adjuntar -->
-            <div class="collapse mb-4" idformSubirDoc id="formSubirDoc">
-                <div class="p-3 bg-light rounded-3 border">
+            <!-- Formulario colapsable para adjuntar documento -->
+            <div class="collapse mb-4" id="formSubirDoc">
+                <div class="p-4 bg-light rounded-4 border">
+                    <h6 class="fw-bold text-navy mb-3">
+                        <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Cargar Documento al Expediente
+                    </h6>
                     <form action="{{ route('documentos.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="solicitud_id" value="{{ $solicitud->id }}">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-5">
-                                <label class="form-label small fw-semibold">Tipo de documento *</label>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-md-5">
+                                <label class="form-label small fw-semibold text-muted mb-1">Tipo de documento *</label>
                                 <select name="tipo_documento_id" class="form-select form-select-sm" required>
                                     @foreach($tiposDocumento as $td)
                                         <option value="{{ $td->id }}">{{ $td->nombre }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label small fw-semibold">Archivo (PDF / DOC / DOCX) *</label>
+                            <div class="col-12 col-md-5">
+                                <label class="form-label small fw-semibold text-muted mb-1">Archivo digital (PDF / DOC / DOCX, máx. 5 MB) *</label>
                                 <input type="file" name="archivo" accept=".pdf,.doc,.docx" class="form-control form-control-sm" required>
                             </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-sm btn-upds w-100">Subir</button>
+                            <div class="col-12 col-md-2">
+                                <button type="submit" class="btn btn-sm btn-upds w-100 rounded-pill fw-semibold">
+                                    <i class="bi bi-upload me-1"></i> Subir
+                                </button>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Tabla de documentos adjuntos -->
+            <!-- Tabla de documentos a ancho completo -->
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr class="small text-muted">
-                            <th>Documento</th>
-                            <th>Tipo</th>
-                            <th>Estado</th>
-                            <th>Validación</th>
-                            <th class="text-end">Acción</th>
+                            <th class="ps-3" style="min-width: 200px;">Documento</th>
+                            <th style="min-width: 140px;">Tipo</th>
+                            <th style="min-width: 130px;">Fecha de Carga</th>
+                            <th style="min-width: 110px;">Estado</th>
+                            <th style="min-width: 200px;">Validación / Observación</th>
+                            <th class="text-end pe-3" style="min-width: 130px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($solicitud->documentos as $doc)
                             <tr>
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-file-earmark-pdf fs-4 text-danger"></i>
+                                        <div>
+                                            <div class="fw-semibold text-dark">{{ $doc->nombre_original }}</div>
+                                            <small class="text-muted">{{ number_format($doc->tamano_bytes / 1024, 1) }} KB</small>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td>
-                                    <div class="fw-semibold text-dark">{{ $doc->nombre_original }}</div>
-                                    <small class="text-muted">{{ number_format($doc->tamano_bytes / 1024, 1) }} KB</small>
+                                    <span class="badge bg-light text-dark border">
+                                        {{ $doc->tipoDocumento->nombre ?? 'Documento' }}
+                                    </span>
                                 </td>
-                                <td><span class="badge bg-light text-dark border">{{ $doc->tipoDocumento->nombre }}</span></td>
-                                <td><span class="badge-{{ $doc->estado }}">{{ ucfirst($doc->estado) }}</span></td>
                                 <td class="small text-muted">
-                                    {{ $doc->observacion_validacion ?? 'Sin observaciones' }}
+                                    {{ $doc->created_at ? $doc->created_at->format('d/m/Y H:i') : '—' }}
                                 </td>
-                                <td class="text-end">
+                                <td>
+                                    <span class="badge-{{ $doc->estado }} px-2 py-1">
+                                        {{ ucfirst($doc->estado) }}
+                                    </span>
+                                </td>
+                                <td class="small">
+                                    @if($doc->observacion_validacion)
+                                        <span class="text-dark">{{ $doc->observacion_validacion }}</span>
+                                    @else
+                                        <span class="text-muted fst-italic">Sin observaciones registradas</span>
+                                    @endif
+                                </td>
+                                <td class="text-end pe-3">
                                     <div class="d-flex justify-content-end gap-1">
-                                        <a href="{{ route('documentos.download', $doc->id) }}" class="btn btn-sm btn-light border text-primary" title="Descargar">
+                                        <a href="{{ route('documentos.download', $doc->id) }}" class="btn btn-sm btn-outline-primary" title="Descargar documento">
                                             <i class="bi bi-download"></i>
                                         </a>
                                         @if(auth()->user()->isCoordinador() && $doc->estado === 'pendiente')
                                             <form action="{{ route('documentos.validar', $doc->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <input type="hidden" name="estado" value="validado">
-                                                <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Validar Documento">
+                                                <button type="submit" class="btn btn-sm btn-success" title="Validar documento">
                                                     <i class="bi bi-check-lg"></i>
                                                 </button>
                                             </form>
-                                            <button type="button" class="btn btn-sm btn-danger py-1 px-2" data-bs-toggle="modal" data-bs-target="#modalRechazarDoc{{ $doc->id }}" title="Rechazar / Observar Documento">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalRechazarDoc{{ $doc->id }}" title="Observar o rechazar">
                                                 <i class="bi bi-x-lg"></i>
                                             </button>
                                         @endif
@@ -216,11 +341,80 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No se han subido documentos a esta solicitud todavía.</td>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="py-3">
+                                        <i class="bi bi-folder-x fs-1 text-muted opacity-50 d-block mb-2"></i>
+                                        <h6 class="fw-semibold text-muted">No existen documentos adjuntos en este expediente</h6>
+                                        <p class="small text-muted mb-3">Sube los requisitos documentales solicitados para proceder con la revisión académica.</p>
+                                        @if(auth()->user()->isEstudiante() || auth()->user()->isCoordinador() || auth()->user()->isAdmin())
+                                            <button type="button" class="btn btn-sm btn-upds rounded-pill px-4" data-bs-toggle="collapse" data-bs-target="#formSubirDoc">
+                                                <i class="bi bi-cloud-arrow-up me-1"></i> Adjuntar Primer Documento
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tercera Sección: Historial de Trazabilidad y Auditoría (ANCHO COMPLETO) -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <div class="rounded-circle bg-secondary-subtle text-secondary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <i class="bi bi-clock-history fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">
+                        Historial de Trazabilidad y Seguimiento de Estados
+                    </h5>
+                    <small class="text-muted">Registro de auditoría con las resoluciones y cambios de estado efectuados.</small>
+                </div>
+            </div>
+
+            <div class="timeline p-2">
+                @forelse($solicitud->historial as $h)
+                    <div class="d-flex gap-3 mb-3 pb-3 border-bottom position-relative">
+                        <div class="mt-1">
+                            <span class="badge bg-primary rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                <i class="bi bi-arrow-repeat text-white" style="font-size: 0.8rem;"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-1 mb-1">
+                                <div class="fw-bold text-dark fs-6">
+                                    Estado: <span class="badge-{{ $h->estado_nuevo }} px-2 py-1">{{ ucfirst(str_replace('_', ' ', $h->estado_nuevo)) }}</span>
+                                    @if($h->estado_anterior && $h->estado_anterior !== $h->estado_nuevo)
+                                        <small class="text-muted fw-normal ms-2">
+                                            (Anterior: <span class="text-secondary">{{ ucfirst(str_replace('_', ' ', $h->estado_anterior)) }}</span>)
+                                        </small>
+                                    @endif
+                                </div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-calendar-event me-1"></i> {{ $h->fecha_cambio ? $h->fecha_cambio->format('d/m/Y H:i') : '—' }}
+                                    &bull; Registrado por: <strong class="text-dark">{{ $h->usuario->name ?? 'Sistema' }}</strong>
+                                </div>
+                            </div>
+                            @if($h->motivo)
+                                <div class="p-3 bg-light rounded-3 text-secondary border small mt-2">
+                                    <strong class="text-dark d-block mb-1"><i class="bi bi-chat-left-quote me-1 text-primary"></i>Motivo / Observación:</strong>
+                                    {{ $h->motivo }}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-info-circle fs-3 d-block mb-2 opacity-50"></i>
+                        No existen cambios de estado registrados en el historial de esta solicitud aún.
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -231,20 +425,22 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header bg-success text-white">
-                <h6 class="modal-title fw-bold">Aprobar Solicitud de Práctica</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-check-circle me-2"></i>Aprobar Solicitud de Práctica</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('solicitudes.cambiar-estado', $solicitud->id) }}" method="POST">
                 @csrf
                 <input type="hidden" name="nuevo_estado" value="aprobada">
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">Al aprobar la solicitud, se habilitará automáticamente la creación del expediente de práctica y la posterior asignación de docente tutor.</p>
+                    <p class="small text-muted mb-3">
+                        Al aprobar la solicitud, se habilitará automáticamente la creación del expediente de práctica y la posterior asignación de docente tutor.
+                    </p>
                     <label class="form-label small fw-semibold">Resolución / Motivo de Aprobación *</label>
                     <textarea name="motivo" class="form-control" rows="3" required placeholder="Ej. Solicitud aprobada tras verificar documentación completa y requisitos académicos cumplidos."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-success">Confirmar Aprobación</button>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">Confirmar Aprobación</button>
                 </div>
             </form>
         </div>
@@ -256,7 +452,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header bg-warning text-dark">
-                <h6 class="modal-title fw-bold">Observar Solicitud de Práctica</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Observar Solicitud de Práctica</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('solicitudes.cambiar-estado', $solicitud->id) }}" method="POST">
@@ -267,8 +463,8 @@
                     <textarea name="motivo" class="form-control" rows="3" required placeholder="Indica los documentos faltantes o correcciones requeridas..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-warning">Registrar Observación</button>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-warning rounded-pill px-3 fw-semibold">Registrar Observación</button>
                 </div>
             </form>
         </div>
@@ -280,7 +476,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header bg-danger text-white">
-                <h6 class="modal-title fw-bold">Rechazar Solicitud de Práctica</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-x-circle me-2"></i>Rechazar Solicitud de Práctica</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('solicitudes.cambiar-estado', $solicitud->id) }}" method="POST">
@@ -291,8 +487,8 @@
                     <textarea name="motivo" class="form-control" rows="3" required placeholder="Motivo institucional del rechazo..."></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-danger">Confirmar Rechazo</button>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">Confirmar Rechazo</button>
                 </div>
             </form>
         </div>
@@ -305,13 +501,15 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow rounded-4">
                 <div class="modal-header bg-danger text-white">
-                    <h6 class="modal-title fw-bold">Rechazar / Observar Documento</h6>
+                    <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-x me-2"></i>Rechazar / Observar Documento</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('documentos.validar', $doc->id) }}" method="POST">
                     @csrf
                     <div class="modal-body">
-                        <p class="small text-muted mb-2">Archivo: <strong>{{ $doc->nombre_original }}</strong> ({{ $doc->tipoDocumento->nombre }})</p>
+                        <p class="small text-muted mb-2">
+                            Archivo: <strong>{{ $doc->nombre_original }}</strong> ({{ $doc->tipoDocumento->nombre ?? 'Documento' }})
+                        </p>
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Acción Resolutiva *</label>
                             <select name="estado" class="form-select" required>
@@ -325,8 +523,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-sm btn-danger">Confirmar Resolución</button>
+                        <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold">Confirmar Resolución</button>
                     </div>
                 </form>
             </div>
@@ -334,4 +532,3 @@
     </div>
 @endforeach
 @endsection
-
