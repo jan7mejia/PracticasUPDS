@@ -99,16 +99,28 @@ class SolicitudController extends Controller
         return view('solicitudes.index', compact('solicitudes', 'documentos', 'tab', 'tiposDocumento', 'perPage'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $user = Auth::user();
         if (!$user->isEstudiante()) {
             abort(403, 'Acción no autorizada. Solo los estudiantes pueden iniciar nuevas solicitudes de práctica.');
         }
 
+        // Flujo de postulación: comprobar si llega organizacion_id preseleccionada
+        $organizacionId = $request->query('organizacion_id') ?? old('organizacion_id');
+        $organizacionPreseleccionada = null;
+
+        if ($organizacionId) {
+            $organizacionPreseleccionada = OrganizacionReceptora::with('responsables')
+                ->where('id', $organizacionId)
+                ->where('estado', 'activa')
+                ->first();
+        }
+
         $organizaciones = OrganizacionReceptora::where('estado', 'activa')->orderBy('nombre')->get();
         $periodos = PeriodoAcademico::where('activo', true)->get();
-        return view('solicitudes.create', compact('organizaciones', 'periodos'));
+
+        return view('solicitudes.create', compact('organizaciones', 'periodos', 'organizacionPreseleccionada'));
     }
 
     public function store(Request $request)

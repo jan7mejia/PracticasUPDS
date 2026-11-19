@@ -92,66 +92,95 @@
     <div class="col-12 col-lg-7">
         @if($selectedOrg)
             <div class="card border-0 shadow-sm rounded-4 p-4">
-                <div class="d-flex justify-content-between align-items-start mb-4 pb-2 border-bottom">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-4 pb-3 border-bottom">
                     <div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 mb-2">
+                            <i class="bi bi-briefcase me-1"></i> Organización Receptora
+                        </span>
                         <h4 class="fw-bold text-navy mb-1" style="color: var(--upds-navy);">{{ $selectedOrg->nombre }}</h4>
-                        <span class="text-muted small"><i class="bi bi-tag me-1"></i> {{ $selectedOrg->rubro }}</span>
+                        <span class="text-muted small"><i class="bi bi-tag me-1"></i> {{ $selectedOrg->rubro ?? 'Sector Empresarial / Institucional' }}</span>
                     </div>
-                    <span class="{{ $selectedOrg->estado === 'activa' ? 'badge-activo' : 'badge-inactiva' }}">
-                        {{ ucfirst($selectedOrg->estado) }}
-                    </span>
+                    <div>
+                        <span class="{{ $selectedOrg->estado === 'activa' ? 'badge-activo' : 'badge-inactiva' }} fs-6 px-3 py-2">
+                            <i class="bi bi-check-circle me-1"></i> {{ ucfirst($selectedOrg->estado) }}
+                        </span>
+                    </div>
                 </div>
 
+                {{-- Tarjeta especial de acción para el Estudiante --}}
+                @if(auth()->user()->isEstudiante())
+                    <div class="p-3 mb-4 rounded-4 text-white d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3"
+                         style="background: linear-gradient(135deg, var(--upds-navy) 0%, var(--upds-primary) 100%);">
+                        <div>
+                            <div class="fw-bold fs-6 mb-1">
+                                <i class="bi bi-stars text-warning me-1"></i> ¿Deseas realizar tus prácticas aquí?
+                            </div>
+                            <div class="small opacity-75">
+                                Inicia tu postulación formal vinculando tus datos a esta institución.
+                            </div>
+                        </div>
+                        <a href="{{ route('solicitudes.create', ['organizacion_id' => $selectedOrg->id]) }}" 
+                           class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm text-nowrap">
+                            <i class="bi bi-send-fill me-1"></i> Postular / Iniciar Solicitud Aquí
+                        </a>
+                    </div>
+                @endif
+
                 <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size: 0.8rem; letter-spacing: 0.5px;">
-                    Datos de la organización
+                    <i class="bi bi-info-circle me-1"></i> Información Institucional y Contacto
                 </h6>
 
                 <div class="row g-3 mb-4">
                     <div class="col-sm-6">
-                        <div class="text-muted small">NIT / RUC:</div>
-                        <div class="fw-semibold text-dark">{{ $selectedOrg->nit ?? 'No registrado' }}</div>
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <small class="text-muted d-block mb-1">NIT / Registro Fiscal:</small>
+                            <span class="fw-semibold text-dark">{{ $selectedOrg->nit ?? 'No registrado' }}</span>
+                        </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-muted small">Sector / Rubro:</div>
-                        <div class="fw-semibold text-dark">{{ $selectedOrg->rubro ?? 'No especificado' }}</div>
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <small class="text-muted d-block mb-1">Sector o Rubro:</small>
+                            <span class="fw-semibold text-dark">{{ $selectedOrg->rubro ?? 'General' }}</span>
+                        </div>
                     </div>
                     <div class="col-12">
-                        <div class="text-muted small">Dirección:</div>
-                        <div class="fw-semibold text-dark">{{ $selectedOrg->direccion ?? 'No registrada' }}</div>
+                        <div class="p-3 bg-light rounded-3 border">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-geo-alt text-primary me-1"></i> Dirección:</small>
+                            <span class="fw-semibold text-dark">{{ $selectedOrg->direccion ?? 'Dirección central no especificada' }}</span>
+                        </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-muted small">Responsable de Contacto:</div>
-                        <div class="fw-semibold text-dark">
-                            {{ $selectedOrg->responsables->first()?->nombre_completo ?? 'No asignado' }}
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-person-badge text-primary me-1"></i> Responsable Institucional:</small>
+                            <span class="fw-semibold text-dark">
+                                {{ $selectedOrg->responsables->first()?->nombre_completo ?? 'Responsable de RRHH' }}
+                            </span>
                             @if($selectedOrg->responsables->first()?->cargo)
-                                <small class="text-muted d-block">({{ $selectedOrg->responsables->first()->cargo }})</small>
+                                <small class="text-muted d-block">Cargo: {{ $selectedOrg->responsables->first()->cargo }}</small>
                             @endif
                         </div>
                     </div>
                     <div class="col-sm-6">
-                        <div class="text-muted small">Teléfono / Celular:</div>
-                        <div class="fw-semibold text-dark">{{ $selectedOrg->telefono ?? 'No registrado' }}</div>
-                    </div>
-                    <div class="col-12">
-                        <div class="text-muted small">Correo Electrónico:</div>
-                        <div class="fw-semibold text-dark">{{ $selectedOrg->correo ?? 'No registrado' }}</div>
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-telephone text-primary me-1"></i> Teléfono / Celular:</small>
+                            <span class="fw-semibold text-dark">{{ $selectedOrg->telefono ?? 'Sin teléfono registrado' }}</span>
+                            <small class="text-muted d-block mt-1"><i class="bi bi-envelope text-primary me-1"></i> {{ $selectedOrg->correo ?? 'Sin correo' }}</small>
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2 pt-3 border-top">
-                    @if(!auth()->user()->isEstudiante() && !auth()->user()->isTutor())
-                    <a href="{{ route('organizaciones.edit', $selectedOrg->id) }}" class="btn btn-outline-primary btn-sm px-3">
-                        <i class="bi bi-pencil me-1"></i> Editar datos
-                    </a>
-                    @endif
-                    @if(auth()->user()->isEstudiante())
-                    <a href="{{ route('solicitudes.create', ['organizacion_id' => $selectedOrg->id]) }}" class="btn btn-primary btn-sm px-3">
-                        <i class="bi bi-file-earmark-plus me-1"></i> Postular / Iniciar Solicitud Aquí
-                    </a>
-                    @endif
-                    <a href="{{ route('solicitudes.index') }}" class="btn btn-outline-secondary btn-sm px-3">
-                        <i class="bi bi-journal-check me-1"></i> Ver solicitudes vinculadas
-                    </a>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 border-top">
+                    <div class="d-flex gap-2">
+                        @if(!auth()->user()->isEstudiante() && !auth()->user()->isTutor())
+                        <a href="{{ route('organizaciones.edit', $selectedOrg->id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                            <i class="bi bi-pencil me-1"></i> Editar datos
+                        </a>
+                        @endif
+                        <a href="{{ route('solicitudes.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            <i class="bi bi-journal-text me-1"></i> Solicitudes del sistema
+                        </a>
+                    </div>
+                    <small class="text-muted">Registro institucional UPDS</small>
                 </div>
             </div>
         @else
