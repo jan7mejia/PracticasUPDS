@@ -42,6 +42,17 @@ class EstudianteController extends Controller
             });
         }
 
+        if ($request->filled('buscar')) {
+            $search = trim($request->buscar);
+            $query->where(function ($q) use ($search) {
+                $q->where('nombres', 'like', "%{$search}%")
+                  ->orWhere('apellidos', 'like', "%{$search}%")
+                  ->orWhere('ru', 'like', "%{$search}%")
+                  ->orWhere('ci', 'like', "%{$search}%")
+                  ->orWhereHas('carrera', fn($cQ) => $cQ->where('nombre', 'like', "%{$search}%"));
+            });
+        }
+
         if ($request->filled('carrera_id')) {
             $query->where('carrera_id', $request->carrera_id);
         }

@@ -41,7 +41,8 @@
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" name="buscar" value="{{ request('buscar') }}" class="form-control bg-light border-start-0" 
-                       placeholder="Buscar por estudiante, RU u organización..." data-auto-search autocomplete="off">
+                       placeholder="{{ auth()->user()->isEstudiante() ? 'Buscar por número u organización...' : 'Buscar por estudiante, RU u organización...' }}" 
+                       data-auto-search autocomplete="off">
                 @if(request('buscar'))
                     <a href="{{ route('solicitudes.index', ['tab' => $tab]) }}" class="btn btn-outline-secondary btn-sm" title="Limpiar"><i class="bi bi-x-lg"></i></a>
                 @endif
@@ -125,8 +126,25 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
-                                    No hay solicitudes registradas en este momento.
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="py-2">
+                                        <i class="bi bi-search text-muted fs-1 d-block mb-2"></i>
+                                        <h6 class="fw-bold text-dark mb-1">No se encontraron resultados</h6>
+                                        <p class="text-muted small mb-3">
+                                            @if(request('buscar'))
+                                                No existen solicitudes que coincidan con "<strong>{{ request('buscar') }}</strong>"{{ request('estado') ? ' y estado ' . request('estado') : '' }}.
+                                            @elseif(request('estado'))
+                                                No existen solicitudes con el estado "<strong>{{ ucfirst(request('estado')) }}</strong>".
+                                            @else
+                                                No hay solicitudes registradas en este momento.
+                                            @endif
+                                        </p>
+                                        @if(request('buscar') || request('estado'))
+                                            <a href="{{ route('solicitudes.index', ['tab' => 'solicitudes']) }}" class="btn btn-sm btn-outline-primary rounded-pill px-4">
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar listado completo
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
@@ -275,8 +293,21 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="text-center text-muted py-4">
-                                No hay documentos cargados en el expediente todavía.
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-file-earmark-x fs-1 d-block mb-2 text-muted"></i>
+                                <h6 class="fw-bold text-dark mb-1">No se encontraron documentos</h6>
+                                <p class="small text-muted mb-3">
+                                    @if(request('buscar'))
+                                        No hay documentos que coincidan con "<strong>{{ request('buscar') }}</strong>".
+                                    @else
+                                        No hay documentos cargados en el expediente todavía.
+                                    @endif
+                                </p>
+                                @if(request('buscar') || request('estado_doc'))
+                                    <a href="{{ route('solicitudes.index', ['tab' => 'documentos']) }}" class="btn btn-sm btn-outline-primary rounded-pill px-4">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todos los documentos
+                                    </a>
+                                @endif
                             </div>
                         @endforelse
                     </div>

@@ -17,15 +17,16 @@
     </div>
 </div>
 
-<!-- Layout idéntico a la Pantalla 6 del Mockup -->
-<div class="row g-4">
-    <!-- COLUMNA IZQUIERDA -->
-    <div class="col-12 col-lg-6">
-        <!-- 1. Asignación de Tutor (Exacto a Screen 6) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 1: RESUMEN GENERAL Y ESTADO DE LA PRÁCTICA -->
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+    <!-- Ficha de Asignación e Información Institucional -->
+    <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-person-badge text-primary me-2"></i>Asignación de tutor
+                    <i class="bi bi-person-badge text-primary me-2"></i>Asignación y Datos Institucionales
                 </h6>
                 @if(auth()->user()->isCoordinador())
                     <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAsignarTutor">
@@ -39,10 +40,13 @@
                     <div class="col-sm-4 text-muted">Estudiante:</div>
                     <div class="col-sm-8 fw-bold text-dark">{{ $practica->solicitud->estudiante->nombre_completo }}</div>
 
-                    <div class="col-sm-4 text-muted">Organización:</div>
+                    <div class="col-sm-4 text-muted">RU / Carrera:</div>
+                    <div class="col-sm-8 fw-semibold"><code>{{ $practica->solicitud->estudiante->ru }}</code> &bull; {{ $practica->solicitud->estudiante->carrera->nombre }}</div>
+
+                    <div class="col-sm-4 text-muted">Organización Receptora:</div>
                     <div class="col-sm-8 fw-semibold text-primary">{{ $practica->solicitud->organizacion->nombre }}</div>
 
-                    <div class="col-sm-4 text-muted">Tutor asignado:</div>
+                    <div class="col-sm-4 text-muted">Docente Tutor:</div>
                     <div class="col-sm-8 fw-bold text-dark">
                         {{ $practica->tutor ? $practica->tutor->nombre_completo : 'Pendiente de asignación' }}
                         @if($practica->tutor)
@@ -50,32 +54,167 @@
                         @endif
                     </div>
 
-                    <div class="col-sm-4 text-muted">Período Práctica:</div>
-                    <div class="col-sm-8">
+                    <div class="col-sm-4 text-muted">Período Académico:</div>
+                    <div class="col-sm-8 text-secondary">
+                        {{ $practica->solicitud->periodo->codigo ?? '2026-I' }} &bull; 
                         {{ $practica->fecha_inicio ? $practica->fecha_inicio->format('d/m/Y') : 'Por definir' }} al 
                         {{ $practica->fecha_fin_prevista ? $practica->fecha_fin_prevista->format('d/m/Y') : 'Por definir' }}
                     </div>
-
-                    <div class="col-sm-4 text-muted">Meta Horas:</div>
-                    <div class="col-sm-8 fw-semibold">{{ $practica->horas_objetivo }} hrs planificadas</div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- 1.1 Cronograma y Actividades Planificadas -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+    <!-- Progreso y Métricas de Horas -->
+    <div class="col-12 col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                        <i class="bi bi-speedometer2 text-primary me-2"></i>Avance de Práctica
+                    </h6>
+                    <span class="badge-{{ $practica->estado }} fs-6 px-3 py-1">
+                        {{ ucfirst(str_replace('_', ' ', $practica->estado)) }}
+                    </span>
+                </div>
+
+                <div class="row g-2 mb-3 small text-center">
+                    <div class="col-4">
+                        <div class="p-2 bg-light rounded-3">
+                            <span class="text-muted d-block" style="font-size: 0.75rem;">Requeridas</span>
+                            <strong class="fs-6 text-dark">{{ $practica->horas_objetivo }}h</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-success-subtle rounded-3">
+                            <span class="text-success d-block" style="font-size: 0.75rem;">Validadas</span>
+                            <strong class="fs-6 text-success">{{ $practica->horas_validadas }}h</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-warning-subtle rounded-3">
+                            <span class="text-dark d-block" style="font-size: 0.75rem;">Pendientes</span>
+                            <strong class="fs-6 text-warning">{{ max(0, $practica->horas_objetivo - $practica->horas_validadas) }}h</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de Avance -->
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Porcentaje de cumplimiento</span>
+                        <strong class="text-dark">{{ $practica->porcentaje_horas }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: {{ min(100, $practica->porcentaje_horas) }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="small text-muted mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                <span>Duración estimada: <strong>{{ $practica->duracion_meses ?? 3 }} meses</strong></span>
+                <span class="text-success fw-semibold"><i class="bi bi-shield-check me-1"></i>Reglamento UPDS</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 2: HORAS Y ACTIVIDADES (BITÁCORA Y CRONOGRAMA) -->
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+    <!-- Bitácora de Horas Registradas -->
+    <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100" id="registroHoras">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                    <i class="bi bi-clock-history text-primary me-2"></i>Bitácora de Horas Registradas
+                </h6>
+                @if(in_array($practica->estado, ['en_curso', 'planificada']) && auth()->user()->isEstudiante())
+                    <button class="btn btn-sm btn-upds py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalRegistrarHoras">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar horas
+                    </button>
+                @endif
+            </div>
+
+            <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                <table class="table table-hover table-sm align-middle small mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tiempo</th>
+                            <th>Descripción</th>
+                            <th>Estado</th>
+                            @if(auth()->user()->isTutor())
+                                <th class="text-end">Validar</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($practica->registrosHoras as $h)
+                            @php
+                                $hEnteras = floor($h->horas);
+                                $minutos = round(($h->horas - $hEnteras) * 60);
+                                $tiempoTexto = ($hEnteras > 0 ? "{$hEnteras}h" : '') . ($minutos > 0 ? " {$minutos}m" : ($hEnteras == 0 ? '0m' : ''));
+                            @endphp
+                            <tr>
+                                <td class="text-nowrap">{{ $h->fecha->format('d/m/Y') }}</td>
+                                <td class="text-nowrap">
+                                    <strong class="text-dark">{{ $tiempoTexto }}</strong>
+                                    <small class="text-muted d-block" style="font-size: 0.72rem;">({{ $h->horas }} hrs)</small>
+                                </td>
+                                <td class="text-truncate" style="max-width: 220px;" title="{{ $h->descripcion }}">{{ $h->descripcion }}</td>
+                                <td>
+                                    <span class="badge-{{ $h->estado }}">{{ ucfirst($h->estado) }}</span>
+                                    @if($h->observacion_revision)
+                                        <i class="bi bi-info-circle ms-1 text-muted" title="{{ $h->observacion_revision }}"></i>
+                                    @endif
+                                </td>
+                                @if(auth()->user()->isTutor())
+                                    <td class="text-end text-nowrap">
+                                        @if($h->estado === 'pendiente')
+                                            <form action="{{ route('seguimiento.horas.validar', $h->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <input type="hidden" name="estado" value="validada">
+                                                <button type="submit" class="btn btn-xs btn-outline-success p-1" title="Aprobar"><i class="bi bi-check-lg"></i></button>
+                                            </form>
+                                            <button type="button" class="btn btn-xs btn-outline-danger p-1" data-bs-toggle="modal" data-bs-target="#modalRechazarHora{{ $h->id }}" title="Rechazar"><i class="bi bi-x-lg"></i></button>
+                                        @else
+                                            <span class="text-muted" style="font-size: 0.7rem;">Revisado</span>
+                                        @endif
+                                    </td>
+                                @endif
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-clock-slash d-block fs-3 mb-1 opacity-50"></i>
+                                    No se han registrado jornadas de práctica todavía.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cronograma de Actividades Planificadas -->
+    <div class="col-12 col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
                     <i class="bi bi-calendar-check text-primary me-2"></i>Cronograma de Actividades
                 </h6>
                 @if(auth()->user()->isCoordinador())
                     <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalNuevaActividad">
-                        <i class="bi bi-plus-lg me-1"></i> + Planificar Actividad
+                        <i class="bi bi-plus-lg me-1"></i> + Planificar
                     </button>
                 @endif
             </div>
 
-            <div class="list-group list-group-flush small">
+            <div class="list-group list-group-flush small" style="max-height: 320px; overflow-y: auto;">
                 @forelse($practica->actividades as $act)
                     <div class="list-group-item p-3 border rounded-3 mb-2 bg-light">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -102,25 +241,35 @@
                         </div>
                     </div>
                 @empty
-                    <div class="text-center text-muted small py-3">No hay actividades planificadas en el cronograma todavía.</div>
+                    <div class="text-center text-muted small py-4">
+                        <i class="bi bi-calendar-x d-block fs-3 mb-1 opacity-50"></i>
+                        No hay actividades planificadas en el cronograma todavía.
+                    </div>
                 @endforelse
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- 2. Reportes de Seguimiento (Exacto a Screen 6) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 3: INFORMES Y OBSERVACIONES DEL TUTOR -->
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+    <!-- Reportes de Seguimiento -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-journal-check text-primary me-2"></i>Reportes de seguimiento
+                    <i class="bi bi-journal-check text-primary me-2"></i>Reportes de Seguimiento (Informes)
                 </h6>
                 @if(auth()->user()->isEstudiante())
-                <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirInforme">
-                    <i class="bi bi-plus-lg me-1"></i> Presentar reporte
-                </button>
+                    <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirInforme">
+                        <i class="bi bi-plus-lg me-1"></i> Presentar reporte
+                    </button>
                 @endif
             </div>
 
-            <div class="list-group list-group-flush">
+            <div class="list-group list-group-flush" style="max-height: 320px; overflow-y: auto;">
                 @forelse($practica->informes as $inf)
                     <div class="list-group-item px-3 py-2 border rounded-3 mb-2 bg-light">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -156,12 +305,68 @@
                         @endif
                     </div>
                 @empty
-                    <div class="text-center text-muted small py-3">No hay reportes de avance registrados aún.</div>
+                    <div class="text-center text-muted small py-4">
+                        <i class="bi bi-journal-x d-block fs-3 mb-1 opacity-50"></i>
+                        No hay reportes de avance registrados aún.
+                    </div>
                 @endforelse
             </div>
         </div>
+    </div>
 
-        <!-- 2.1 Evaluaciones Parciales / Seguimiento -->
+    <!-- Observaciones del Tutor -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                    <i class="bi bi-chat-left-dots text-primary me-2"></i>Observaciones y Sugerencias del Tutor
+                </h6>
+                @if(auth()->user()->isTutor() || auth()->user()->isCoordinador())
+                    <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="collapse" data-bs-target="#formNuevaObs">
+                        <i class="bi bi-plus-lg me-1"></i> + Nueva nota
+                    </button>
+                @endif
+            </div>
+
+            <!-- Formulario colapsable para tutor -->
+            <div class="collapse mb-3" id="formNuevaObs">
+                <form action="{{ route('seguimiento.observaciones.store', $practica->id) }}" method="POST" class="p-3 bg-light rounded-3 border">
+                    @csrf
+                    <label class="form-label small fw-semibold">Detalle de la observación:</label>
+                    <textarea name="detalle" class="form-control form-control-sm mb-2" rows="2" required placeholder="Escribe aquí tu observación o retroalimentación académica..."></textarea>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-sm btn-upds">Guardar Observación</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-group list-group-flush" style="max-height: 320px; overflow-y: auto;">
+                @forelse($practica->observaciones as $obs)
+                    <div class="list-group-item p-3 border rounded-3 mb-2 bg-light small">
+                        <div class="text-dark mb-1">{{ $obs->detalle }}</div>
+                        <div class="text-muted d-flex justify-content-between" style="font-size: 0.75rem;">
+                            <span><i class="bi bi-person me-1"></i> {{ $obs->tutor->nombre_completo ?? 'Docente Tutor' }}</span>
+                            <span>{{ $obs->fecha->format('d/m/Y H:i') }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-4 rounded-3 bg-light text-muted small text-center">
+                        <i class="bi bi-chat-square-text d-block fs-3 mb-1 opacity-50"></i>
+                        El estudiante aún no tiene observaciones registradas.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 4: EVALUACIONES Y CIERRE DE PRÁCTICA -->
+<!-- ══════════════════════════════════════════════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+    <!-- Evaluaciones Parciales y Valoración de la Organización -->
+    <div class="col-12 col-lg-6">
+        <!-- Evaluaciones Parciales -->
         <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
@@ -196,8 +401,8 @@
             </div>
         </div>
 
-        <!-- 2.2 Valoración de la Organización Receptora -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <!-- Valoración de la Organización Receptora -->
+        <div class="card border-0 shadow-sm rounded-4 p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
                     <i class="bi bi-buildings text-primary me-2"></i>Valoración de la Organización Receptora
@@ -239,205 +444,70 @@
                 </div>
             @endif
         </div>
-
-        <!-- 3. Evaluación Final (Exacto a Screen 6) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-award text-primary me-2"></i>Evaluación final y Cierre
-                </h6>
-            </div>
-
-            @if($practica->evaluacionFinal)
-                <div class="p-3 bg-light rounded-3 small mb-3">
-                    <div class="row g-2">
-                        <div class="col-sm-4 text-muted">Criterio:</div>
-                        <div class="col-sm-8 fw-semibold">Desempeño general y cumplimiento</div>
-
-                        <div class="col-sm-4 text-muted">Calificación:</div>
-                        <div class="col-sm-8 fw-bold text-success fs-6">{{ $practica->evaluacionFinal->calificacion }} / 100</div>
-
-                        <div class="col-sm-4 text-muted">Resultado final:</div>
-                        <div class="col-sm-8"><span class="badge-activo">{{ $practica->evaluacionFinal->resultado }}</span></div>
-
-                        <div class="col-sm-4 text-muted">Comentario Tutor:</div>
-                        <div class="col-sm-8 fst-italic text-secondary">{{ $practica->evaluacionFinal->comentario }}</div>
-                    </div>
-                </div>
-            @else
-                <div class="p-3 bg-light rounded-3 small mb-3">
-                    <div class="row g-2">
-                        <div class="col-sm-4 text-muted">Criterio:</div>
-                        <div class="col-sm-8 fw-semibold">Desempeño general</div>
-
-                        <div class="col-sm-4 text-muted">Calificación:</div>
-                        <div class="col-sm-8 text-muted">Pendiente de evaluación del tutor</div>
-
-                        <div class="col-sm-4 text-muted">Resultado final:</div>
-                        <div class="col-sm-8 text-muted">En proceso</div>
-                    </div>
-                </div>
-            @endif
-
-            @if(auth()->user()->isTutor() && $practica->estado !== 'concluida')
-                <button type="button" class="btn btn-upds w-100" data-bs-toggle="modal" data-bs-target="#modalEvaluacionFinal">
-                    <i class="bi bi-check2-circle me-1"></i> Registrar evaluación final
-                </button>
-            @endif
-
-            @if(auth()->user()->isCoordinador() && !in_array($practica->estado, ['concluida', 'cancelada', 'abandonada']))
-                <hr class="my-3">
-                <h6 class="fw-bold small text-navy mb-2">Resolución y Cierre de Práctica (Coordinación)</h6>
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-sm btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConcluirPractica">
-                        <i class="bi bi-award me-1"></i> Finalizar y Concluir Práctica
-                    </button>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-warning text-dark w-50" data-bs-toggle="modal" data-bs-target="#modalAbandonarPractica">
-                            <i class="bi bi-slash-circle me-1"></i> Abandono
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger w-50" data-bs-toggle="modal" data-bs-target="#modalCancelarPractica">
-                            <i class="bi bi-x-circle me-1"></i> Cancelar
-                        </button>
-                    </div>
-                </div>
-            @endif
-        </div>
     </div>
 
-    <!-- COLUMNA DERECHA -->
+    <!-- Evaluación Final y Cierre de Práctica -->
     <div class="col-12 col-lg-6">
-        <!-- 4. Registro de Horas (Exacto a Screen 6) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" id="registroHoras">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-clock-history text-primary me-2"></i>Registro de horas
-                </h6>
-                @if(in_array($practica->estado, ['en_curso', 'planificada']) && auth()->user()->isEstudiante())
-                <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#modalRegistrarHoras">
-                    <i class="bi bi-plus-lg me-1"></i> Registrar horas
-                </button>
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                        <i class="bi bi-award text-primary me-2"></i>Evaluación Final del Tutor y Cierre
+                    </h6>
+                </div>
+
+                @if($practica->evaluacionFinal)
+                    <div class="p-3 bg-light rounded-3 small mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-4 text-muted">Criterio:</div>
+                            <div class="col-sm-8 fw-semibold">Desempeño general y cumplimiento</div>
+
+                            <div class="col-sm-4 text-muted">Calificación:</div>
+                            <div class="col-sm-8 fw-bold text-success fs-6">{{ $practica->evaluacionFinal->calificacion }} / 100</div>
+
+                            <div class="col-sm-4 text-muted">Resultado final:</div>
+                            <div class="col-sm-8"><span class="badge-activo">{{ $practica->evaluacionFinal->resultado }}</span></div>
+
+                            <div class="col-sm-4 text-muted">Comentario Tutor:</div>
+                            <div class="col-sm-8 fst-italic text-secondary">{{ $practica->evaluacionFinal->comentario }}</div>
+                        </div>
+                    </div>
+                @else
+                    <div class="p-3 bg-light rounded-3 small mb-3 text-center text-muted">
+                        <i class="bi bi-award fs-2 d-block mb-1 opacity-50"></i>
+                        <div><strong>Evaluación final pendiente</strong></div>
+                        <small>El docente tutor asignado registrará la calificación final tras completar las horas e informes requeridos.</small>
+                    </div>
                 @endif
-            </div>
 
-            <div class="row g-2 mb-3 small">
-                <div class="col-6">
-                    <span class="text-muted">Horas requeridas:</span>
-                    <strong class="d-block fs-6 text-dark">{{ $practica->horas_objetivo }} h</strong>
-                </div>
-                <div class="col-6 text-end">
-                    <span class="text-muted">Horas validadas:</span>
-                    <strong class="d-block fs-6 text-success">{{ $practica->horas_validadas }} h</strong>
-                </div>
-            </div>
-
-            <!-- Barra de Avance -->
-            <div class="mb-4">
-                <div class="d-flex justify-content-between small text-muted mb-1">
-                    <span>Avance</span>
-                    <strong class="text-dark">{{ $practica->porcentaje_horas }}%</strong>
-                </div>
-                <div class="progress" style="height: 10px; border-radius: 6px;">
-                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $practica->porcentaje_horas }}%"></div>
-                </div>
-            </div>
-
-            <!-- Tabla de Bitácora de Horas -->
-            <h6 class="fw-bold small text-muted text-uppercase mb-2">Historial de Jornadas Registradas</h6>
-            <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
-                <table class="table table-sm align-middle small mb-0">
-                    <thead class="table-light sticky-top">
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Horas</th>
-                            <th>Descripción</th>
-                            <th>Estado</th>
-                            @if(auth()->user()->isTutor())
-                                <th class="text-end">Validar</th>
-                            @endif
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($practica->registrosHoras as $h)
-                            <tr>
-                                <td>{{ $h->fecha->format('d/m/Y') }}</td>
-                                <td><strong>{{ $h->horas }} h</strong></td>
-                                <td class="text-truncate" style="max-width: 180px;" title="{{ $h->descripcion }}">{{ $h->descripcion }}</td>
-                                <td>
-                                    <span class="badge-{{ $h->estado }}">{{ ucfirst($h->estado) }}</span>
-                                    @if($h->observacion_revision)
-                                        <i class="bi bi-info-circle ms-1 text-muted" title="{{ $h->observacion_revision }}"></i>
-                                    @endif
-                                </td>
-                                @if(auth()->user()->isTutor())
-                                    <td class="text-end">
-                                        @if($h->estado === 'pendiente')
-                                            <form action="{{ route('seguimiento.horas.validar', $h->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                <input type="hidden" name="estado" value="validada">
-                                                <button type="submit" class="btn btn-xs btn-outline-success p-1" title="Aprobar"><i class="bi bi-check-lg"></i></button>
-                                            </form>
-                                            <button type="button" class="btn btn-xs btn-outline-danger p-1" data-bs-toggle="modal" data-bs-target="#modalRechazarHora{{ $h->id }}" title="Rechazar"><i class="bi bi-x-lg"></i></button>
-                                        @else
-                                            <span class="text-muted" style="font-size: 0.7rem;">Revisado</span>
-                                        @endif
-                                    </td>
-                                @endif
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-3 text-muted">No se han registrado jornadas todavía.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 5. Observaciones del Tutor (Exacto a Screen 6) -->
-        <div class="card border-0 shadow-sm rounded-4 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                    <i class="bi bi-chat-left-dots text-primary me-2"></i>Observaciones del Tutor
-                </h6>
-                @if(auth()->user()->isTutor() || auth()->user()->isCoordinador())
-                    <button class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill fw-semibold" data-bs-toggle="collapse" data-bs-target="#formNuevaObs">
-                        <i class="bi bi-plus-lg me-1"></i> + Nueva nota
+                @if(auth()->user()->isTutor() && $practica->estado !== 'concluida')
+                    <button type="button" class="btn btn-upds w-100 mb-3" data-bs-toggle="modal" data-bs-target="#modalEvaluacionFinal">
+                        <i class="bi bi-check2-circle me-1"></i> Registrar evaluación final
                     </button>
                 @endif
             </div>
 
-            <!-- Formulario colapsable para tutor -->
-            <div class="collapse mb-3" id="formNuevaObs">
-                <form action="{{ route('seguimiento.observaciones.store', $practica->id) }}" method="POST" class="p-3 bg-light rounded-3 border">
-                    @csrf
-                    <label class="form-label small fw-semibold">Detalle de la observación:</label>
-                    <textarea name="detalle" class="form-control form-control-sm mb-2" rows="2" required placeholder="Escribe aquí tu observación o retroalimentación..."></textarea>
-                    <div class="text-end">
-                        <button type="submit" class="btn btn-sm btn-upds">Guardar Observación</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="list-group list-group-flush">
-                @forelse($practica->observaciones as $obs)
-                    <div class="list-group-item p-3 border rounded-3 mb-2 bg-light small">
-                        <div class="text-dark mb-1">{{ $obs->detalle }}</div>
-                        <div class="text-muted d-flex justify-content-between" style="font-size: 0.75rem;">
-                            <span><i class="bi bi-person me-1"></i> {{ $obs->tutor->nombre_completo ?? 'Docente Tutor' }}</span>
-                            <span>{{ $obs->fecha->format('d/m/Y H:i') }}</span>
+            @if(auth()->user()->isCoordinador() && !in_array($practica->estado, ['concluida', 'cancelada', 'abandonada']))
+                <div class="pt-3 border-top">
+                    <h6 class="fw-bold small text-navy mb-2">Resolución y Cierre de Práctica (Coordinación)</h6>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-sm btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConcluirPractica">
+                            <i class="bi bi-award me-1"></i> Finalizar y Concluir Práctica
+                        </button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning text-dark w-50" data-bs-toggle="modal" data-bs-target="#modalAbandonarPractica">
+                                <i class="bi bi-slash-circle me-1"></i> Abandono
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger w-50" data-bs-toggle="modal" data-bs-target="#modalCancelarPractica">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar
+                            </button>
                         </div>
                     </div>
-                @empty
-                    <div class="p-3 rounded-3 bg-light text-muted small text-center">
-                        El estudiante aún no tiene observaciones registradas.
-                    </div>
-                @endforelse
-            </div>
+                </div>
+            @endif
         </div>
     </div>
 </div>
-
 <!-- Modal Asignar Tutor -->
 <div class="modal fade" id="modalAsignarTutor" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -468,33 +538,83 @@
     </div>
 </div>
 
-<!-- Modal Registrar Horas -->
+<!-- Modal Registrar Horas con Selector Claro de Horas y Minutos -->
 <div class="modal fade" id="modalRegistrarHoras" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header text-white" style="background-color: var(--upds-navy);">
-                <h6 class="modal-title fw-bold">Registrar Jornada de Práctica</h6>
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-clock-history me-2"></i>Registrar Jornada de Práctica
+                </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('seguimiento.horas.store', $practica->id) }}" method="POST">
                 @csrf
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Fecha de la jornada *</label>
                         <input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                        <small class="text-muted">No se permiten fechas futuras ni anteriores al inicio de la práctica.</small>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Horas realizadas * (entre 0.5 y {{ config('practicas.max_horas_diarias', 8.0) }})</label>
-                        <input type="number" step="0.5" name="horas" class="form-control" min="0.5" max="{{ config('practicas.max_horas_diarias', 8.0) }}" value="4" required>
+                        <label class="form-label small fw-semibold d-block">Duración de la jornada *</label>
+                        <div class="row g-2">
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted small"><i class="bi bi-hourglass-split me-1"></i> Horas</span>
+                                    <select name="duracion_horas" id="selectHorasJornada" class="form-select" onchange="actualizarCalculoHoras()">
+                                        @for($i = 0; $i <= (int)config('practicas.max_horas_diarias', 8); $i++)
+                                            <option value="{{ $i }}" {{ $i == 4 ? 'selected' : '' }}>{{ $i }} {{ $i == 1 ? 'hora' : 'horas' }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted small">Min</span>
+                                    <select name="duracion_minutos" id="selectMinutosJornada" class="form-select" onchange="actualizarCalculoHoras()">
+                                        <option value="0" selected>00 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min (media hora)</option>
+                                        <option value="45">45 min</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Valor decimal real transmitido al servidor -->
+                        <input type="hidden" name="horas" id="inputHorasDecimal" value="4.0">
+
+                        <!-- Explicación visual en vivo para que el estudiante nunca se confunda -->
+                        <div class="alert alert-info py-2 px-3 small mt-2 mb-2 d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="bi bi-info-circle me-1 text-primary"></i>
+                                Total a registrar: <strong id="textoHorasResumen" class="text-primary">4 horas (4.0 hrs académicas)</strong>
+                            </div>
+                            <span class="badge bg-primary text-white" id="badgeHorasDecimal">4.0 h</span>
+                        </div>
+
+                        <!-- Atajos rápidos -->
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="text-muted small me-1">Atajos rápidos:</span>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(2, 0)">2h</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(4, 0)">4h (Media jornada)</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(6, 0)">6h</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 rounded-pill small" onclick="setDuracion(8, 0)">8h (Máx)</button>
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Descripción detallada de actividades *</label>
                         <textarea name="descripcion" class="form-control" rows="3" required placeholder="Describe las tareas, funciones o proyectos desarrollados durante la jornada..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-sm btn-upds">Registrar Jornada</button>
+                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-upds rounded-pill px-4">
+                        <i class="bi bi-save me-1"></i> Registrar Jornada
+                    </button>
                 </div>
             </form>
         </div>
@@ -975,5 +1095,43 @@
         </div>
     </div>
 @endif
+
+@section('scripts')
+<script>
+function actualizarCalculoHoras() {
+    var selH = document.getElementById('selectHorasJornada');
+    var selM = document.getElementById('selectMinutosJornada');
+    if (!selH || !selM) return;
+    var h = parseInt(selH.value) || 0;
+    var m = parseInt(selM.value) || 0;
+    var decimal = parseFloat((h + (m / 60)).toFixed(2));
+    document.getElementById('inputHorasDecimal').value = decimal;
+    var descMin = m > 0 ? (' y ' + m + ' minutos') : '';
+    var descHora = h > 0 ? (h + (h === 1 ? ' hora' : ' horas')) : '';
+    var texto = (descHora + descMin) || '0 minutos';
+    var txtEl = document.getElementById('textoHorasResumen');
+    var badgeEl = document.getElementById('badgeHorasDecimal');
+    if (txtEl) txtEl.innerText = 'Total: ' + texto + ' (' + decimal + ' hrs académicas)';
+    if (badgeEl) badgeEl.innerText = decimal + ' h';
+}
+
+function setDuracion(h, m) {
+    var selH = document.getElementById('selectHorasJornada');
+    var selM = document.getElementById('selectMinutosJornada');
+    if (selH) selH.value = h;
+    if (selM) selM.value = m;
+    actualizarCalculoHoras();
+}
+
+// Inicializar al abrir el modal
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('modalRegistrarHoras');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function() {
+            actualizarCalculoHoras();
+        });
+    }
+});
+</script>
 @endsection
 

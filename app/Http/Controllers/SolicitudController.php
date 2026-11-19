@@ -24,20 +24,58 @@ class SolicitudController extends Controller
 
         if ($user->isEstudiante()) {
             $estudiante = $user->estudiante;
-            $solicitudes = SolicitudPractica::where('estudiante_id', $estudiante?->id)
-                ->with(['organizacion', 'periodo', 'documentos.tipoDocumento'])
-                ->orderBy('created_at', 'desc')
+            $query = SolicitudPractica::where('estudiante_id', $estudiante?->id)
+                ->with(['organizacion', 'periodo', 'documentos.tipoDocumento']);
+
+            if ($request->filled('estado')) {
+                $query->where('estado', $request->estado);
+            }
+
+            if ($request->filled('buscar')) {
+                $search = trim($request->buscar);
+                $cleanNum = ltrim(preg_replace('/[^0-9]/', '', $search), '0');
+                $query->where(function ($q) use ($search, $cleanNum) {
+                    if (!empty($cleanNum)) {
+                        $q->orWhere('id', (int)$cleanNum);
+                    }
+                    $q->orWhereHas('organizacion', function ($orgQ) use ($search) {
+                        $orgQ->where('nombre', 'like', "%{$search}%")
+                             ->orWhere('rubro', 'like', "%{$search}%");
+                    });
+                    $q->orWhere('estado', 'like', "%{$search}%");
+                    $q->orWhereHas('periodo', function ($perQ) use ($search) {
+                        $perQ->where('codigo', 'like', "%{$search}%")
+                             ->orWhere('nombre', 'like', "%{$search}%");
+                    });
+                });
+            }
+
+            $solicitudes = $query->orderBy('created_at', 'desc')
                 ->orderBy('id', 'desc')
                 ->paginate($perPage, ['*'], 'sol_page')
                 ->withQueryString();
 
-            $documentos = DocumentoSolicitud::whereHas('solicitud', function ($q) use ($estudiante) {
+            $docQuery = DocumentoSolicitud::whereHas('solicitud', function ($q) use ($estudiante) {
                 $q->where('estudiante_id', $estudiante?->id);
-            })->with(['tipoDocumento', 'solicitud.organizacion'])
-              ->orderBy('created_at', 'desc')
-              ->orderBy('id', 'desc')
-              ->paginate($perPage, ['*'], 'doc_page')
-              ->withQueryString();
+            })->with(['tipoDocumento', 'solicitud.organizacion']);
+
+            if ($request->filled('estado_doc')) {
+                $docQuery->where('estado', $request->estado_doc);
+            }
+
+            if ($request->filled('buscar') && $tab === 'documentos') {
+                $search = trim($request->buscar);
+                $docQuery->where(function ($q) use ($search) {
+                    $q->where('nombre_original', 'like', "%{$search}%")
+                      ->orWhereHas('tipoDocumento', fn($t) => $t->where('nombre', 'like', "%{$search}%"))
+                      ->orWhereHas('solicitud.organizacion', fn($o) => $o->where('nombre', 'like', "%{$search}%"));
+                });
+            }
+
+            $documentos = $docQuery->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->paginate($perPage, ['*'], 'doc_page')
+                ->withQueryString();
         } elseif ($user->isTutor()) {
             // Tutor: solo consulta las solicitudes de los estudiantes que tiene asignados en prácticas
             $tutor = $user->tutor;
@@ -49,22 +87,46 @@ class SolicitudController extends Controller
                 $query->where('estado', $request->estado);
             }
             if ($request->filled('buscar')) {
-                $search = $request->buscar;
-                $query->whereHas('estudiante', function ($q) use ($search) {
-                    $q->where('nombres', 'like', "%{$search}%")
-                      ->orWhere('apellidos', 'like', "%{$search}%")
-                      ->orWhere('ru', 'like', "%{$search}%");
+                $search = trim($request->buscar);
+                $cleanNum = ltrim(preg_replace('/[^0-9]/', '', $search), '0');
+                $query->where(function ($q) use ($search, $cleanNum) {
+                    if (!empty($cleanNum)) {
+                        $q->orWhere('id', (int)$cleanNum);
+                    }
+                    $q->orWhereHas('estudiante', function ($qEst) use ($search) {
+                        $qEst->where('nombres', 'like', "%{$search}%")
+                             ->orWhere('apellidos', 'like', "%{$search}%")
+                             ->orWhere('ru', 'like', "%{$search}%");
+                    });
+                    $q->orWhereHas('organizacion', function ($orgQ) use ($search) {
+                        $orgQ->where('nombre', 'like', "%{$search}%")
+                             ->orWhere('rubro', 'like', "%{$search}%");
+                    });
+                    $q->orWhere('estado', 'like', "%{$search}%");
                 });
             }
             $solicitudes = $query->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'sol_page')->withQueryString();
 
-            $documentos = DocumentoSolicitud::whereHas('solicitud.practica', function ($q) use ($tutor) {
+            $docQuery = DocumentoSolicitud::whereHas('solicitud.practica', function ($q) use ($tutor) {
                 $q->where('tutor_id', $tutor?->id);
-            })->with(['tipoDocumento', 'solicitud.estudiante', 'solicitud.organizacion'])
-              ->orderBy('created_at', 'desc')
-              ->orderBy('id', 'desc')
-              ->paginate($perPage, ['*'], 'doc_page')
-              ->withQueryString();
+            })->with(['tipoDocumento', 'solicitud.estudiante', 'solicitud.organizacion']);
+
+            if ($request->filled('estado_doc')) {
+                $docQuery->where('estado', $request->estado_doc);
+            }
+            if ($request->filled('buscar') && $tab === 'documentos') {
+                $search = trim($request->buscar);
+                $docQuery->where(function ($q) use ($search) {
+                    $q->where('nombre_original', 'like', "%{$search}%")
+                      ->orWhereHas('tipoDocumento', fn($t) => $t->where('nombre', 'like', "%{$search}%"))
+                      ->orWhereHas('solicitud.estudiante', fn($e) => $e->where('nombres', 'like', "%{$search}%")->orWhere('apellidos', 'like', "%{$search}%"))
+                      ->orWhereHas('solicitud.organizacion', fn($o) => $o->where('nombre', 'like', "%{$search}%"));
+                });
+            }
+            $documentos = $docQuery->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->paginate($perPage, ['*'], 'doc_page')
+                ->withQueryString();
         } else {
             // Coordinador / Admin
             $query = SolicitudPractica::with(['estudiante.carrera', 'organizacion', 'periodo', 'documentos.tipoDocumento']);
@@ -78,11 +140,22 @@ class SolicitudController extends Controller
                 $query->where('organizacion_id', $request->organizacion_id);
             }
             if ($request->filled('buscar')) {
-                $search = $request->buscar;
-                $query->whereHas('estudiante', function ($q) use ($search) {
-                    $q->where('nombres', 'like', "%{$search}%")
-                      ->orWhere('apellidos', 'like', "%{$search}%")
-                      ->orWhere('ru', 'like', "%{$search}%");
+                $search = trim($request->buscar);
+                $cleanNum = ltrim(preg_replace('/[^0-9]/', '', $search), '0');
+                $query->where(function ($q) use ($search, $cleanNum) {
+                    if (!empty($cleanNum)) {
+                        $q->orWhere('id', (int)$cleanNum);
+                    }
+                    $q->orWhereHas('estudiante', function ($qEst) use ($search) {
+                        $qEst->where('nombres', 'like', "%{$search}%")
+                             ->orWhere('apellidos', 'like', "%{$search}%")
+                             ->orWhere('ru', 'like', "%{$search}%");
+                    });
+                    $q->orWhereHas('organizacion', function ($orgQ) use ($search) {
+                        $orgQ->where('nombre', 'like', "%{$search}%")
+                             ->orWhere('rubro', 'like', "%{$search}%");
+                    });
+                    $q->orWhere('estado', 'like', "%{$search}%");
                 });
             }
             $solicitudes = $query->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'sol_page')->withQueryString();
@@ -90,6 +163,15 @@ class SolicitudController extends Controller
             $docQuery = DocumentoSolicitud::with(['tipoDocumento', 'solicitud.estudiante', 'solicitud.organizacion']);
             if ($request->filled('estado_doc')) {
                 $docQuery->where('estado', $request->estado_doc);
+            }
+            if ($request->filled('buscar') && $tab === 'documentos') {
+                $search = trim($request->buscar);
+                $docQuery->where(function ($q) use ($search) {
+                    $q->where('nombre_original', 'like', "%{$search}%")
+                      ->orWhereHas('tipoDocumento', fn($t) => $t->where('nombre', 'like', "%{$search}%"))
+                      ->orWhereHas('solicitud.estudiante', fn($e) => $e->where('nombres', 'like', "%{$search}%")->orWhere('apellidos', 'like', "%{$search}%"))
+                      ->orWhereHas('solicitud.organizacion', fn($o) => $o->where('nombre', 'like', "%{$search}%"));
+                });
             }
             $documentos = $docQuery->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'doc_page')->withQueryString();
         }

@@ -24,16 +24,18 @@ class AdminController extends Controller
 
     public function usuariosIndex(Request $request)
     {
-        $search    = $request->get('q');
+        $search    = $request->get('buscar') ?? $request->get('q');
         $rolFilter = $request->get('rol_id');
         $estadoFilter = $request->get('estado');
 
         $query = User::with('rol')->orderBy('name');
 
         if ($search) {
+            $search = trim($search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
+                  ->orWhere('email', 'like', "%$search%")
+                  ->orWhereHas('rol', fn($r) => $r->where('nombre', 'like', "%$search%")->orWhere('codigo', 'like', "%$search%"));
             });
         }
         if ($rolFilter) {

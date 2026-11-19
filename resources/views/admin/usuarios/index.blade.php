@@ -42,7 +42,7 @@
         <form method="GET" action="{{ route('admin.usuarios.index') }}" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Buscar por nombre o correo</label>
-                <input type="text" name="q" class="form-control form-control-sm" placeholder="Ej: Carlos Meneses o @upds.edu.bo..." value="{{ $search }}" data-auto-search autocomplete="off">
+                <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Ej: Carlos Meneses o @upds.edu.bo..." value="{{ $search }}" data-auto-search autocomplete="off">
             </div>
             <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Rol institucional</label>

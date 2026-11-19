@@ -12,104 +12,116 @@
     </h4>
 </div>
 
-<div class="card border-0 shadow-sm rounded-4 p-4" style="max-width: 800px;">
-    <form action="{{ route('organizaciones.update', $organizacion->id) }}" method="POST">
-        @csrf
-        @method('PUT')
-        <div class="row g-3">
-            <div class="col-md-8">
-                <label class="form-label small fw-semibold">Nombre o Razón Social *</label>
-                <input type="text" name="nombre" class="form-control" value="{{ old('nombre', $organizacion->nombre) }}" required>
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <div class="card-header bg-transparent border-0 px-0 pt-0 pb-3 mb-2 border-bottom">
+                <h5 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">
+                    <i class="bi bi-pencil-square me-2 text-primary"></i>Datos Institucionales de la Organización
+                </h5>
+                <small class="text-muted">Actualiza los datos de identificación, rubro y canales de contacto formal.</small>
             </div>
-            <div class="col-md-4">
-                <label class="form-label small fw-semibold">NIT</label>
-                <input type="text" name="nit" class="form-control" value="{{ old('nit', $organizacion->nit) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-semibold">Rubro</label>
-                <input type="text" name="rubro" class="form-control" value="{{ old('rubro', $organizacion->rubro) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-semibold">Estado</label>
-                <select name="estado" class="form-select" required>
-                    <option value="activa" {{ $organizacion->estado === 'activa' ? 'selected' : '' }}>Activa</option>
-                    <option value="inactiva" {{ $organizacion->estado === 'inactiva' ? 'selected' : '' }}>Inactiva</option>
-                </select>
-            </div>
-            <div class="col-12">
-                <label class="form-label small fw-semibold">Dirección</label>
-                <input type="text" name="direccion" class="form-control" value="{{ old('direccion', $organizacion->direccion) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-semibold">Teléfono</label>
-                <input type="text" name="telefono" class="form-control" value="{{ old('telefono', $organizacion->telefono) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-semibold">Correo Electrónico</label>
-                <input type="email" name="correo" class="form-control" value="{{ old('correo', $organizacion->correo) }}">
-            </div>
+            <form action="{{ route('organizaciones.update', $organizacion->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Nombre o Razón Social *</label>
+                        <input type="text" name="nombre" class="form-control" value="{{ old('nombre', $organizacion->nombre) }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">NIT</label>
+                        <input type="text" name="nit" class="form-control" value="{{ old('nit', $organizacion->nit) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Rubro</label>
+                        <input type="text" name="rubro" class="form-control" value="{{ old('rubro', $organizacion->rubro) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Estado</label>
+                        <select name="estado" class="form-select" required>
+                            <option value="activa" {{ $organizacion->estado === 'activa' ? 'selected' : '' }}>Activa</option>
+                            <option value="inactiva" {{ $organizacion->estado === 'inactiva' ? 'selected' : '' }}>Inactiva</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" value="{{ old('direccion', $organizacion->direccion) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" value="{{ old('telefono', $organizacion->telefono) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Correo Electrónico</label>
+                        <input type="email" name="correo" class="form-control" value="{{ old('correo', $organizacion->correo) }}">
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                    <a href="{{ route('organizaciones.index') }}" class="btn btn-light rounded-pill px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-upds rounded-pill px-4">
+                        <i class="bi bi-save me-1"></i> Actualizar Organización
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
-            <a href="{{ route('organizaciones.index') }}" class="btn btn-light">Cancelar</a>
-            <button type="submit" class="btn btn-upds">Actualizar Organización</button>
-        </div>
-    </form>
-</div>
+        <!-- Responsables y Contactos Institucionales -->
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
+                        <i class="bi bi-people text-primary me-2"></i>Contactos y Responsables Institucionales
+                    </h5>
+                    <small class="text-muted">Personas de contacto autorizadas de la empresa o institución receptora.</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalNuevoContacto">
+                    <i class="bi bi-plus-lg me-1"></i> + Agregar Contacto
+                </button>
+            </div>
 
-<!-- Responsables y Contactos Institucionales -->
-<div class="card border-0 shadow-sm rounded-4 p-4 mt-4" style="max-width: 800px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h5 class="fw-bold text-navy mb-0" style="color: var(--upds-navy);">
-                <i class="bi bi-people text-primary me-2"></i>Contactos y Responsables Institucionales
-            </h5>
-            <small class="text-muted">Personas de contacto autorizadas de la empresa o institución receptora.</small>
+            <div class="table-responsive">
+                <table class="table align-middle table-hover small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Cargo</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($organizacion->responsables as $resp)
+                            <tr>
+                                <td class="fw-semibold text-dark">{{ $resp->nombre_completo }}</td>
+                                <td>{{ $resp->cargo ?? '-' }}</td>
+                                <td>{{ $resp->telefono ?? '-' }}</td>
+                                <td>{{ $resp->correo ?? '-' }}</td>
+                                <td>
+                                    @if($resp->activo)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Activo</span>
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary border">Inactivo</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-xs btn-outline-primary py-1 px-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#modalEditarContacto{{ $resp->id }}">
+                                        <i class="bi bi-pencil me-1"></i> Editar
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">No hay contactos registrados para esta organización aún.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoContacto">
-            <i class="bi bi-plus-lg me-1"></i> + Agregar Contacto
-        </button>
-    </div>
-
-    <div class="table-responsive">
-        <table class="table align-middle table-hover small">
-            <thead class="table-light">
-                <tr>
-                    <th>Nombre</th>
-                    <th>Cargo</th>
-                    <th>Teléfono</th>
-                    <th>Correo</th>
-                    <th>Estado</th>
-                    <th class="text-end">Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($organizacion->responsables as $resp)
-                    <tr>
-                        <td class="fw-semibold text-dark">{{ $resp->nombre_completo }}</td>
-                        <td>{{ $resp->cargo ?? '-' }}</td>
-                        <td>{{ $resp->telefono ?? '-' }}</td>
-                        <td>{{ $resp->correo ?? '-' }}</td>
-                        <td>
-                            @if($resp->activo)
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Activo</span>
-                            @else
-                                <span class="badge bg-secondary-subtle text-secondary border">Inactivo</span>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            <button type="button" class="btn btn-xs btn-outline-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#modalEditarContacto{{ $resp->id }}">
-                                <i class="bi bi-pencil me-1"></i> Editar
-                            </button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No hay contactos registrados para esta organización aún.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
     </div>
 </div>
 

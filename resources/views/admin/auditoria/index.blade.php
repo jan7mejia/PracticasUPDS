@@ -18,7 +18,7 @@
         <form method="GET" action="{{ route('admin.auditoria.index') }}" class="row g-2 align-items-end">
             <div class="col-md-5">
                 <label class="form-label small fw-semibold text-muted mb-1">Buscar por administrador, usuario afectado o motivo</label>
-                <input type="text" name="q" class="form-control form-control-sm" placeholder="Texto de búsqueda..." value="{{ request('q') }}">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Texto de búsqueda..." value="{{ request('q') }}" data-auto-search autocomplete="off">
             </div>
             <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted mb-1">Tipo de acción</label>

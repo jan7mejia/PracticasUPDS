@@ -573,23 +573,49 @@
                 });
             });
 
-            // 3. Buscador automático con retardo inteligente (debounce 300ms)
+            // 3. Buscador inteligente con retardo (debounce 350ms), control de longitud >= 3 y soporte Enter
             document.querySelectorAll('input[data-auto-search]').forEach(function(input) {
                 var timer = null;
                 var form = input.closest('form');
+                if (!form) return;
+
+                // Enviar inmediatamente si el usuario presiona Enter
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        clearTimeout(timer);
+                        var pageInput = form.querySelector('input[name="page"], input[name="sol_page"], input[name="doc_page"]');
+                        if (pageInput) pageInput.value = 1;
+                        form.submit();
+                    }
+                });
+
+                // Control reactivo con debounce y validación de longitud (mínimo 3 caracteres o vacío)
                 input.addEventListener('input', function() {
                     clearTimeout(timer);
                     var query = input.value.trim();
+
+                    // Si escribe 1 o 2 caracteres, no enviar búsquedas innecesarias al servidor
+                    if (query.length > 0 && query.length < 3) {
+                        return;
+                    }
+
                     timer = setTimeout(function() {
-                        if (form) {
-                            // Si el campo fue vaciado o tiene 2 o más caracteres, disparar búsqueda
-                            if (query.length >= 2 || query.length === 0) {
-                                form.submit();
-                            }
+                        var pageInput = form.querySelector('input[name="page"], input[name="sol_page"], input[name="doc_page"]');
+                        if (pageInput) pageInput.value = 1;
+
+                        if (query.length >= 3 || query.length === 0) {
+                            form.submit();
                         }
                     }, 350);
                 });
             });
+
+            // Mantener el foco y cursor al final del campo de búsqueda activo
+            var activeSearchInput = document.querySelector('input[data-auto-search]:focus, input[data-auto-search]');
+            if (activeSearchInput && activeSearchInput.value && document.activeElement === activeSearchInput) {
+                var val = activeSearchInput.value;
+                activeSearchInput.setSelectionRange(val.length, val.length);
+            }
         });
     </script>
     @yield('scripts')

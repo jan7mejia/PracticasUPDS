@@ -51,15 +51,28 @@ class SeguimientoController extends Controller
         }
 
         if ($request->filled('buscar')) {
-            $search = $request->buscar;
-            $query->where(function($q) use ($search) {
-                $q->whereHas('solicitud.estudiante', function($sq) use ($search) {
+            $search = trim($request->buscar);
+            $cleanNum = ltrim(preg_replace('/[^0-9]/', '', $search), '0');
+            $query->where(function($q) use ($search, $cleanNum, $user) {
+                if (!empty($cleanNum)) {
+                    $q->orWhere('id', (int)$cleanNum);
+                }
+                $q->orWhereHas('solicitud.estudiante', function($sq) use ($search) {
                     $sq->where('nombres', 'like', "%{$search}%")
                        ->orWhere('apellidos', 'like', "%{$search}%")
                        ->orWhere('ru', 'like', "%{$search}%");
                 })->orWhereHas('solicitud.organizacion', function($oq) use ($search) {
-                    $oq->where('nombre', 'like', "%{$search}%");
-                });
+                    $oq->where('nombre', 'like', "%{$search}%")
+                       ->orWhere('rubro', 'like', "%{$search}%");
+                })->orWhere('estado', 'like', "%{$search}%");
+
+                if (!$user->isTutor()) {
+                    $q->orWhereHas('tutor', function($tq) use ($search) {
+                        $tq->where('nombres', 'like', "%{$search}%")
+                           ->orWhere('apellidos', 'like', "%{$search}%")
+                           ->orWhere('especialidad', 'like', "%{$search}%");
+                    });
+                }
             });
         }
 
@@ -153,6 +166,14 @@ class SeguimientoController extends Controller
         // 2. RF-11: Permitir registrar horas únicamente en prácticas en curso
         if ($practica->estado !== 'en_curso') {
             return back()->withErrors(['horas' => "Solo se pueden registrar horas cuando la práctica se encuentra en estado 'en curso' (Estado actual: {$practica->estado})."])->withInput();
+        }
+
+        // Compatibilidad: calcular horas a partir de horas y minutos si fueron enviados
+        if ($request->has('duracion_horas') || $request->has('duracion_minutos')) {
+            $h = (int) $request->input('duracion_horas', 0);
+            $m = (int) $request->input('duracion_minutos', 0);
+            $totalDecimal = round($h + ($m / 60.0), 2);
+            $request->merge(['horas' => $totalDecimal]);
         }
 
         $maxDiarias = (float) config('practicas.max_horas_diarias', 8.0);

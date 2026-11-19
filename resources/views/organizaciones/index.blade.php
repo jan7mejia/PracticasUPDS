@@ -186,7 +186,21 @@
         @else
             <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
                 <i class="bi bi-building-slash fs-1 opacity-50 mb-2"></i>
-                <p>Selecciona una organización receptora de la lista o registra una nueva.</p>
+                <h5 class="fw-bold text-dark mb-1">No se encontraron organizaciones</h5>
+                <p class="small text-muted mb-3">
+                    @if($search)
+                        No existen organizaciones ni empresas que coincidan con "<strong>{{ $search }}</strong>".
+                    @else
+                        Selecciona una organización receptora de la lista o registra una nueva.
+                    @endif
+                </p>
+                @if($search)
+                    <div>
+                        <a href="{{ route('organizaciones.index') }}" class="btn btn-sm btn-outline-primary rounded-pill px-4">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar catálogo completo
+                        </a>
+                    </div>
+                @endif
             </div>
         @endif
     </div>
