@@ -270,15 +270,32 @@
             color: var(--upds-text-muted);
         }
 
-        /* Separación uniforme de tarjetas y bordes profesionales */
+        /* Separación uniforme y generosa de tarjetas y rejillas */
         .card {
             border-radius: 1rem;
-            border: 1px solid rgba(226, 232, 240, 0.85);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
             transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
         .card-header {
             border-top-left-radius: 1rem !important;
             border-top-right-radius: 1rem !important;
+        }
+
+        /* Separación vertical automática cuando hay tarjetas apiladas */
+        .card + .card {
+            margin-top: 1.75rem;
+        }
+
+        /* Espaciado generoso de 28px en filas con g-4 */
+        .row.g-4 {
+            --bs-gutter-x: 1.75rem;
+            --bs-gutter-y: 1.75rem;
+        }
+
+        /* Margen inferior estándar para secciones de contenido */
+        .mb-4 {
+            margin-bottom: 1.75rem !important;
         }
     </style>
     @yield('styles')
