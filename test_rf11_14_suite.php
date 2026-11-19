@@ -376,3 +376,4 @@ echo str_repeat('═', 68) . "\n";
 echo "  TOTAL SUITE: {$passed} pasaron  |  {$failed} fallaron\n";
 echo str_repeat('═', 68) . "\n";
 exit($failed > 0 ? 1 : 0);
+
