@@ -1902,7 +1902,9 @@
                                 <select name="informe_avance_id" class="form-select form-select-sm">
                                     <option value="">-- Sin vincular a informe --</option>
                                     @foreach($practica->informes as $inf)
-                                        <option value="{{ $inf->id }}">{{ $inf->titulo }} ({{ $inf->periodo_inicio->format('d/m/Y') }})</option>
+                                        <option value="{{ $inf->id }}" {{ ($inf->actividad_id == $act->id) ? 'selected' : '' }}>
+                                            {{ $inf->titulo }} ({{ $inf->periodo_inicio->format('d/m/Y') }})
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -1916,11 +1918,28 @@
                                     </div>
                                     <div class="input-group input-group-sm mb-1">
                                         <span class="input-group-text">Calificación (0 - 100)</span>
-                                        <input type="number" step="0.5" min="0" max="100" maxlength="5" name="puntuaciones[{{ $crit->id }}]" class="form-control input-calificacion-rubrica" required placeholder="0 a 100" oninput="validarNotaInput(this)">
+                                        <input type="number" step="0.5" min="0" max="100" maxlength="5" name="puntuaciones[{{ $crit->id }}]" class="form-control input-calificacion-rubrica input-rubrica-act-{{ $act->id }}" data-ponderacion="{{ $crit->ponderacion }}" required placeholder="0 a 100" oninput="validarNotaInput(this); recalcularNotaRubricaLive({{ $act->id }})">
                                     </div>
                                     <input type="text" name="comentarios[{{ $crit->id }}]" class="form-control form-control-sm" placeholder="Comentario u observación sobre el criterio...">
                                 </div>
                             @endforeach
+
+                            <!-- Resumen en Vivo de la Calificación Ponderada -->
+                            <div class="card border-0 shadow-sm p-3 mb-2 rounded-3" style="background: #f8fafc; border-left: 4px solid var(--upds-navy) !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="text-muted small d-block">Nota Ponderada Calculada:</span>
+                                        <span class="fs-4 fw-bold text-navy" id="lblNotaRubricaLive{{ $act->id }}">0.00</span>
+                                        <span class="text-muted small"> / 100 pts</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-muted small d-block mb-1">Resultado Preliminar:</span>
+                                        <span class="badge bg-secondary px-3 py-2 fs-6 rounded-pill" id="badgeResultadoRubricaLive{{ $act->id }}">
+                                            <i class="bi bi-clock-history me-1"></i> Sin calificar
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
@@ -2084,6 +2103,42 @@ function cambiarActividadParcial(sel) {
         }
     } else {
         if (aviso) aviso.classList.remove('d-none');
+    }
+}
+
+function recalcularNotaRubricaLive(actId) {
+    var inputs = document.querySelectorAll('.input-rubrica-act-' + actId);
+    var suma = 0;
+    var totalInputs = inputs.length;
+    var completados = 0;
+
+    inputs.forEach(function(inp) {
+        var ponderacion = parseFloat(inp.getAttribute('data-ponderacion')) || 0;
+        var val = parseFloat(inp.value);
+        if (!isNaN(val)) {
+            completados++;
+            suma += (val * (ponderacion / 100.0));
+        }
+    });
+
+    var lbl = document.getElementById('lblNotaRubricaLive' + actId);
+    var badge = document.getElementById('badgeResultadoRubricaLive' + actId);
+
+    if (lbl) {
+        lbl.textContent = suma.toFixed(2);
+    }
+
+    if (badge) {
+        if (completados === 0) {
+            badge.className = 'badge bg-secondary px-3 py-2 fs-6 rounded-pill';
+            badge.innerHTML = '<i class="bi bi-clock-history me-1"></i> Sin calificar';
+        } else if (suma >= 51.0) {
+            badge.className = 'badge bg-success px-3 py-2 fs-6 rounded-pill';
+            badge.innerHTML = '<i class="bi bi-check-circle me-1"></i> Aprobado';
+        } else {
+            badge.className = 'badge bg-danger px-3 py-2 fs-6 rounded-pill';
+            badge.innerHTML = '<i class="bi bi-x-circle me-1"></i> Reprobado';
+        }
     }
 }
 

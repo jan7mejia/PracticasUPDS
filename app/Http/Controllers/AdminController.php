@@ -15,6 +15,8 @@ use App\Models\Coordinador;
 use App\Models\Carrera;
 use App\Models\SolicitudPractica;
 use App\Models\AuditoriaAdministrativa;
+use App\Models\RequisitoAcademico;
+use App\Models\EstudianteRequisito;
 
 class AdminController extends Controller
 {
@@ -113,6 +115,40 @@ class AdminController extends Controller
                 $estudiante = Estudiante::find($request->estudiante_id);
                 if ($estudiante && is_null($estudiante->usuario_id)) {
                     $estudiante->update(['usuario_id' => $usuario->id]);
+                }
+            } else {
+                // Crear ficha académica completa de estudiante para que exista de inmediato en la base de datos
+                $partes = explode(' ', trim($request->name), 2);
+                $carrera = Carrera::first();
+                $ruGenerado = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+                while (Estudiante::where('ru', $ruGenerado)->exists()) {
+                    $ruGenerado = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+                }
+
+                $estudiante = Estudiante::create([
+                    'usuario_id' => $usuario->id,
+                    'carrera_id' => $carrera ? $carrera->id : 1,
+                    'ru' => $ruGenerado,
+                    'ci' => null,
+                    'nombres' => $partes[0] ?? $request->name,
+                    'apellidos' => $partes[1] ?? 'Estudiante',
+                    'telefono' => '',
+                    'semestre' => 7,
+                    'estado' => 'activo',
+                ]);
+
+                // Asignar requisitos académicos base
+                $requisitos = RequisitoAcademico::where('activo', true)
+                    ->where(function ($q) use ($estudiante) {
+                        $q->whereNull('carrera_id')->orWhere('carrera_id', $estudiante->carrera_id);
+                    })->get();
+
+                foreach ($requisitos as $req) {
+                    EstudianteRequisito::create([
+                        'estudiante_id' => $estudiante->id,
+                        'requisito_id' => $req->id,
+                        'estado' => 'pendiente',
+                    ]);
                 }
             }
         } elseif ($rol->codigo === 'tutor') {

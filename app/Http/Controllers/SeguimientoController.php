@@ -713,18 +713,39 @@ class SeguimientoController extends Controller
                 'observacion' => "Evaluada mediante rúbrica. Nota obtenida: {$notaTotal}/100 (" . ($aprobado ? 'Aprobado' : 'Reprobado') . ").",
             ]);
 
+            // Sincronizar informe de avance vinculado o informe de la actividad
+            $informe = null;
             if ($request->filled('informe_avance_id')) {
                 $informe = InformeAvance::find($request->informe_avance_id);
-                if ($informe) {
-                    $informe->update([
-                        'estado' => 'revisado',
-                        'calificacion' => $notaTotal,
-                        'revisado_por_tutor_id' => $tutor->id,
-                        'fecha_revision' => now(),
-                        'observaciones_tutor' => "Calificación por rúbrica: {$notaTotal}/100.",
-                    ]);
-                }
             }
+            if (!$informe) {
+                $informe = InformeAvance::where('actividad_id', $actividad->id)->where('practica_id', $practica->id)->first();
+            }
+
+            if ($informe) {
+                $informe->update([
+                    'estado' => 'revisado',
+                    'calificacion' => $notaTotal,
+                    'revisado_por_tutor_id' => $tutor->id,
+                    'fecha_revision' => now(),
+                    'observaciones_tutor' => "Calificación obtenida por rúbrica técnica: {$notaTotal}/100 (" . ($aprobado ? 'Aprobado' : 'Reprobado') . ").",
+                ]);
+            }
+
+            // Sincronizar automáticamente en Evaluaciones de Seguimiento (Parciales)
+            EvaluacionSeguimiento::updateOrCreate(
+                [
+                    'practica_id' => $practica->id,
+                    'periodo' => "Evaluación Parcial: {$actividad->titulo}",
+                ],
+                [
+                    'tutor_id' => $tutor->id,
+                    'fecha' => now()->toDateString(),
+                    'calificacion' => $notaTotal,
+                    'resultado' => $aprobado ? 'Aprobado' : 'Reprobado',
+                    'comentario' => "Calificación obtenida por rúbrica técnica de actividad ({$notaTotal}/100 - " . ($aprobado ? 'Aprobado' : 'Reprobado') . ").",
+                ]
+            );
 
             // Nota final calculada automáticamente si todas las actividades han sido evaluadas
             $todasActividades = $practica->actividades()->with('rubrica.criterios.evaluaciones')->get();
@@ -1050,7 +1071,9 @@ class SeguimientoController extends Controller
             ]);
         }
 
-        return Storage::disk('local')->download($informe->ruta_privada, "Informe_{$informe->id}_{$informe->titulo}");
+        $extension = pathinfo($informe->ruta_privada, PATHINFO_EXTENSION) ?: 'pdf';
+        $nombreLimpio = \Illuminate\Support\Str::slug("informe-{$informe->id}-" . substr($informe->titulo, 0, 50)) . '.' . $extension;
+        return Storage::disk('local')->download($informe->ruta_privada, $nombreLimpio);
     }
 
     public function revisarInforme(Request $request, InformeAvance $informe)

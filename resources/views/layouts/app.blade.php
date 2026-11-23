@@ -377,11 +377,14 @@
                             </a>
                         </li>
                         @endif
+                        @if(auth()->user()->isCoordinador())
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('organizaciones.*') ? 'active' : '' }}" href="{{ route('organizaciones.index') }}">
                                 <i class="bi bi-building me-1"></i> Organizaciones
                             </a>
                         </li>
+                        @endif
+                        @if(!auth()->user()->isTutor())
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('solicitudes.*') ? 'active' : '' }}" href="{{ route('solicitudes.index') }}">
                                 <i class="bi bi-file-earmark-text me-1"></i> Solicitudes
@@ -401,6 +404,7 @@
                                 @endif
                             </a>
                         </li>
+                        @endif
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('seguimiento.*') ? 'active' : '' }}" href="{{ route('seguimiento.index') }}">
                                 <i class="bi bi-clock-history me-1"></i> {{ auth()->user()->isEstudiante() ? 'Mi Seguimiento' : (auth()->user()->isTutor() ? 'Seguimiento Académico' : 'Seguimiento') }}
