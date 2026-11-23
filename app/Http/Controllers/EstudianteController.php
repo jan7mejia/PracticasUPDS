@@ -85,20 +85,54 @@ class EstudianteController extends Controller
         if (auth()->user()->isTutor() || auth()->user()->isEstudiante()) {
             abort(403, 'Acceso denegado. No tienes autorización para crear estudiantes.');
         }
-        $request->validate([
+
+        $crearCuenta = ($request->input('tipo_cuenta', 'nueva') === 'nueva') || $request->filled('email_institucional');
+
+        $rules = [
             'nombres' => 'required|string|max:100',
             'apellidos' => 'required|string|max:120',
             'ru' => 'required|string|max:40|unique:estudiantes,ru',
             'ci' => 'nullable|string|max:40|unique:estudiantes,ci',
-            'usuario_id' => 'nullable|exists:users,id|unique:estudiantes,usuario_id',
             'carrera_id' => 'required|exists:carreras,id',
             'semestre' => 'nullable|integer|between:1,15',
             'telefono' => 'nullable|string|max:30',
+        ];
+
+        if ($crearCuenta) {
+            $rules['email_institucional'] = 'required|email|max:150|unique:users,email';
+            $rules['password_inicial'] = 'required|string|min:6';
+        } else {
+            $rules['usuario_id'] = 'nullable|exists:users,id|unique:estudiantes,usuario_id';
+        }
+
+        $request->validate($rules, [
+            'nombres.required' => 'Ingresa los nombres del estudiante.',
+            'apellidos.required' => 'Ingresa los apellidos del estudiante.',
+            'ru.required' => 'El Registro Universitario (RU) es obligatorio.',
+            'ru.unique' => 'El RU ingresado ya se encuentra registrado.',
+            'carrera_id.required' => 'Selecciona la carrera académica.',
+            'email_institucional.required' => 'Ingresa el correo institucional UPDS para la cuenta del estudiante.',
+            'email_institucional.unique' => 'Ya existe un usuario registrado con este correo electrónico institucional.',
+            'password_inicial.required' => 'Ingresa la contraseña inicial de acceso.',
+            'password_inicial.min' => 'La contraseña debe contener al menos 6 caracteres.',
         ]);
 
-        $estudiante = DB::transaction(function () use ($request) {
+        $estudiante = DB::transaction(function () use ($request, $crearCuenta) {
+            $usuarioId = $request->usuario_id;
+
+            if ($crearCuenta) {
+                $userEstudiante = User::create([
+                    'name' => trim("{$request->nombres} {$request->apellidos}"),
+                    'email' => strtolower(trim($request->email_institucional)),
+                    'password' => Hash::make($request->password_inicial),
+                    'rol_id' => 4, // Rol Estudiante
+                    'email_verified_at' => now(),
+                ]);
+                $usuarioId = $userEstudiante->id;
+            }
+
             $estudiante = Estudiante::create([
-                'usuario_id' => $request->usuario_id,
+                'usuario_id' => $usuarioId,
                 'carrera_id' => $request->carrera_id,
                 'ru' => $request->ru,
                 'ci' => $request->ci,
@@ -127,8 +161,8 @@ class EstudianteController extends Controller
         });
 
         $msg = $estudiante->usuario_id 
-            ? 'Ficha académica del estudiante registrada y vinculada a la cuenta de usuario.'
-            : 'Ficha académica registrada exitosamente (Pendiente de vinculación de cuenta por el Administrador).';
+            ? "Estudiante {$estudiante->nombre_completo} registrado y cuenta institucional ({$estudiante->user?->email}) habilitada inmediatamente."
+            : "Estudiante {$estudiante->nombre_completo} registrado exitosamente.";
 
         return redirect()->route('estudiantes.show', $estudiante->id)->with('success', $msg);
     }
@@ -167,7 +201,8 @@ class EstudianteController extends Controller
         if (auth()->user()->isTutor() || auth()->user()->isEstudiante()) {
             abort(403, 'Acceso denegado. Operación no permitida.');
         }
-        $request->validate([
+
+        $rules = [
             'nombres' => 'required|string|max:100',
             'apellidos' => 'required|string|max:120',
             'ru' => 'required|string|max:40|unique:estudiantes,ru,' . $estudiante->id,
@@ -176,17 +211,35 @@ class EstudianteController extends Controller
             'semestre' => 'nullable|integer|between:1,15',
             'telefono' => 'nullable|string|max:30',
             'estado' => 'required|in:activo,inactivo,egresado',
-        ]);
+        ];
 
-        $estudiante->update($request->only([
-            'nombres', 'apellidos', 'ru', 'ci', 'carrera_id', 'semestre', 'telefono', 'estado'
-        ]));
-
-        if ($estudiante->user) {
-            $estudiante->user->update([
-                'name' => "{$request->nombres} {$request->apellidos}",
-            ]);
+        if (!$estudiante->usuario_id && $request->filled('email_institucional')) {
+            $rules['email_institucional'] = 'required|email|max:150|unique:users,email';
+            $rules['password_inicial'] = 'required|string|min:6';
         }
+
+        $request->validate($rules);
+
+        DB::transaction(function () use ($request, $estudiante) {
+            $estudiante->update($request->only([
+                'nombres', 'apellidos', 'ru', 'ci', 'carrera_id', 'semestre', 'telefono', 'estado'
+            ]));
+
+            if ($estudiante->user) {
+                $estudiante->user->update([
+                    'name' => "{$request->nombres} {$request->apellidos}",
+                ]);
+            } elseif ($request->filled('email_institucional') && $request->filled('password_inicial')) {
+                $newUser = User::create([
+                    'name' => trim("{$request->nombres} {$request->apellidos}"),
+                    'email' => strtolower(trim($request->email_institucional)),
+                    'password' => Hash::make($request->password_inicial),
+                    'rol_id' => 4,
+                    'email_verified_at' => now(),
+                ]);
+                $estudiante->update(['usuario_id' => $newUser->id]);
+            }
+        });
 
         return redirect()->route('estudiantes.show', $estudiante->id)->with('success', 'Datos del estudiante actualizados correctamente.');
     }

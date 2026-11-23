@@ -24,6 +24,28 @@
             <form action="{{ route('estudiantes.update', $estudiante->id) }}" method="POST">
                 @csrf
                 @method('PUT')
+                @if($estudiante->user)
+                    <div class="alert alert-success py-2 small mb-3 border-success-subtle">
+                        <i class="bi bi-person-check-fill me-1 text-success"></i>
+                        Cuenta institucional vinculada: <strong>{{ $estudiante->user->email }}</strong> (Rol: Estudiante UPDS).
+                    </div>
+                @else
+                    <div class="card border border-warning-subtle rounded-3 p-3 mb-3 bg-light">
+                        <h6 class="fw-bold small text-navy mb-2"><i class="bi bi-person-plus text-warning me-1"></i>Habilitar Cuenta Institucional</h6>
+                        <small class="text-muted d-block mb-2">Este estudiante aún no tiene cuenta de acceso al sistema. El coordinador puede crearla ahora:</small>
+                        <div class="row g-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Correo Institucional *</label>
+                                <input type="email" name="email_institucional" class="form-control form-control-sm" placeholder="ej. {{ Str::slug($estudiante->nombres) }}.{{ Str::slug($estudiante->apellidos) }}@upds.edu.bo">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Contraseña Inicial *</label>
+                                <input type="text" name="password_inicial" class="form-control form-control-sm" value="12345678">
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Nombres *</label>

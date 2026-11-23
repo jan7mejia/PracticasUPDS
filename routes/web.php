@@ -58,10 +58,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/seguimiento/{practica}', [SeguimientoController::class, 'show'])->name('seguimiento.show');
     Route::post('/seguimiento/{practica}/asignar-tutor', [SeguimientoController::class, 'asignarTutor'])->name('seguimiento.asignar-tutor');
     Route::post('/seguimiento/{practica}/configurar', [SeguimientoController::class, 'configurarPractica'])->name('seguimiento.configurar');
+    Route::post('/seguimiento/{practica}/aprobar-cronograma', [SeguimientoController::class, 'aprobarCronograma'])->name('seguimiento.aprobar-cronograma');
     Route::post('/seguimiento/{practica}/actividades', [SeguimientoController::class, 'storeActividad'])->name('seguimiento.actividades.store');
     Route::put('/seguimiento/actividades/{actividad}', [SeguimientoController::class, 'updateActividad'])->name('seguimiento.actividades.update');
+    Route::post('/seguimiento/actividades/{actividad}/rubrica', [SeguimientoController::class, 'storeRubrica'])->name('seguimiento.actividades.rubrica.store');
+    Route::post('/seguimiento/rubricas/{rubrica}/evaluar', [SeguimientoController::class, 'evaluarRubrica'])->name('seguimiento.rubricas.evaluar');
     Route::post('/seguimiento/{practica}/horas', [SeguimientoController::class, 'storeHora'])->name('seguimiento.horas.store');
     Route::post('/seguimiento/horas/{hora}/validar', [SeguimientoController::class, 'validarHora'])->name('seguimiento.horas.validar');
+    Route::post('/seguimiento/{practica}/justificaciones', [SeguimientoController::class, 'storeJustificacion'])->name('seguimiento.justificaciones.store');
+    Route::post('/seguimiento/justificaciones/{justificacion}/resolver', [SeguimientoController::class, 'resolverJustificacion'])->name('seguimiento.justificaciones.resolver');
+    Route::post('/seguimiento/{practica}/incidencias', [SeguimientoController::class, 'storeIncidencia'])->name('seguimiento.incidencias.store');
+    Route::post('/seguimiento/incidencias/{incidencia}/resolver', [SeguimientoController::class, 'resolverIncidencia'])->name('seguimiento.incidencias.resolver');
     Route::post('/seguimiento/{practica}/informes', [SeguimientoController::class, 'storeInforme'])->name('seguimiento.informes.store');
     Route::get('/seguimiento/informes/{informe}/descargar', [SeguimientoController::class, 'descargarInforme'])->name('seguimiento.informes.descargar');
     Route::post('/seguimiento/informes/{informe}/revisar', [SeguimientoController::class, 'revisarInforme'])->name('seguimiento.informes.revisar');

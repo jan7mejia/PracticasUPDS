@@ -390,18 +390,24 @@ class SolicitudController extends Controller
                 'fecha_cambio' => now(),
             ]);
 
-            // RF-10: horas_objetivo y fecha_fin_prevista desde config/practicas.php, NO valores fijos.
-            // RF-10: La asignación de tutor corresponde al coordinador DESPUÉS de crear la práctica.
+            // RF-10 y Nuevo Reglamento v2: Prácticas nuevas duran exactamente 3 meses calendario
+            // Horas requeridas = Días hábiles (Lunes a Viernes) * 4 horas/día (Elimina las 240h fijas para nuevas prácticas)
             if ($nuevoEstado === 'aprobada' && !$solicitude->practica) {
                 $defaultCoord = Coordinador::first();
+                $fechaInicio = now()->toDateString();
+                $fechaFin = Practica::calcularFechaFin3Meses($fechaInicio);
+                $horasCalc = Practica::calcularHorasRequeridasV2($fechaInicio, $fechaFin);
+
                 Practica::create([
-                    'solicitud_id'      => $solicitude->id,
-                    'coordinador_id'    => $coord ? $coord->id : ($defaultCoord ? $defaultCoord->id : 1),
-                    'fecha_inicio'      => now()->toDateString(),
-                    'fecha_fin_prevista'=> now()->addMonths(config('practicas.duracion_meses', 3))->toDateString(),
-                    'horas_objetivo'    => config('practicas.horas_objetivo', 240.0),
-                    'estado'            => 'planificada',
-                    // tutor_id se asigna explícitamente desde el módulo de seguimiento por el coordinador.
+                    'solicitud_id'       => $solicitude->id,
+                    'coordinador_id'     => $coord ? $coord->id : ($defaultCoord ? $defaultCoord->id : 1),
+                    'fecha_inicio'       => $fechaInicio,
+                    'fecha_fin_prevista' => $fechaFin,
+                    'horas_objetivo'     => $horasCalc,
+                    'horas_programadas'  => $horasCalc,
+                    'version_reglamento' => 'v2_automatizado',
+                    'cronograma_aprobado'=> false,
+                    'estado'             => 'planificada',
                 ]);
             }
         });

@@ -52,21 +52,67 @@
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-7">
-                            <label class="form-label fw-semibold small">Cuenta de Usuario Vinculada (Opcional)</label>
-                            <select name="usuario_id" class="form-select @error('usuario_id') is-invalid @enderror">
-                                <option value="">— Sin cuenta vinculada (El Administrador creará la cuenta) —</option>
+                    <!-- Sección Cuenta de Acceso Institucional (Habilitado para Coordinación) -->
+                    <div class="card border border-primary-subtle rounded-3 p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-navy" style="color: var(--upds-navy);">
+                                <i class="bi bi-person-lock text-primary me-2"></i>Cuenta de Acceso Institucional (UPDS)
+                            </h6>
+                            <span class="badge bg-primary-subtle text-primary border">Coordinación Académica</span>
+                        </div>
+                        <small class="text-muted d-block mb-3">La coordinación académica puede habilitar directamente la cuenta institucional del estudiante sin depender del administrador.</small>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tipo_cuenta" id="cuenta_nueva" value="nueva" checked onchange="toggleTipoCuenta()">
+                                <label class="form-check-label small fw-semibold" for="cuenta_nueva">Crear nueva cuenta institucional</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tipo_cuenta" id="cuenta_existente" value="existente" onchange="toggleTipoCuenta()">
+                                <label class="form-check-label small fw-semibold" for="cuenta_existente">Vincular a cuenta existente</label>
+                            </div>
+                        </div>
+
+                        <!-- Campos para nueva cuenta institucional -->
+                        <div id="seccion_cuenta_nueva" class="row g-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Correo Institucional UPDS *</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="email" name="email_institucional" id="email_institucional" 
+                                           class="form-control @error('email_institucional') is-invalid @enderror" 
+                                           value="{{ old('email_institucional') }}" placeholder="ej. ana.gomez@upds.edu.bo">
+                                    <button type="button" class="btn btn-outline-primary" onclick="generarCorreoSugerido()" title="Generar sugerencia con nombres y apellidos">
+                                        <i class="bi bi-magic me-1"></i>Sugerir correo
+                                    </button>
+                                </div>
+                                @error('email_institucional') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Contraseña Inicial *</label>
+                                <input type="text" name="password_inicial" class="form-control form-control-sm @error('password_inicial') is-invalid @enderror" 
+                                       value="{{ old('password_inicial', '12345678') }}" required>
+                                <small class="text-muted">Por defecto: 12345678</small>
+                                @error('password_inicial') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Selector de cuenta existente -->
+                        <div id="seccion_cuenta_existente" class="d-none mt-2">
+                            <label class="form-label small fw-semibold">Seleccionar cuenta de usuario:</label>
+                            <select name="usuario_id" class="form-select form-select-sm @error('usuario_id') is-invalid @enderror">
+                                <option value="">— Seleccionar usuario registrado previamente —</option>
                                 @foreach($cuentasEstudiantes as $cu)
                                     <option value="{{ $cu->id }}" {{ old('usuario_id') == $cu->id ? 'selected' : '' }}>
                                         {{ $cu->name }} ({{ $cu->email }})
                                     </option>
                                 @endforeach
                             </select>
-                            <div class="form-text text-muted">Las cuentas de acceso con credenciales son administradas por el Administrador General del sistema.</div>
-                            @error('usuario_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @error('usuario_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
-                        <div class="col-md-5">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
                             <label class="form-label fw-semibold small">Teléfono / Celular de Contacto</label>
                             <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
                                    value="{{ old('telefono') }}" placeholder="Ej: 77912345">
@@ -110,5 +156,47 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+function toggleTipoCuenta() {
+    var esNueva = document.getElementById('cuenta_nueva').checked;
+    var divNueva = document.getElementById('seccion_cuenta_nueva');
+    var divExistente = document.getElementById('seccion_cuenta_existente');
+    var inputEmail = document.getElementById('email_institucional');
+
+    if (esNueva) {
+        divNueva.classList.remove('d-none');
+        divExistente.classList.add('d-none');
+        if (inputEmail) inputEmail.setAttribute('required', 'required');
+    } else {
+        divNueva.classList.add('d-none');
+        divExistente.classList.remove('d-none');
+        if (inputEmail) inputEmail.removeAttribute('required');
+    }
+}
+
+function generarCorreoSugerido() {
+    var nombres = document.querySelector('input[name="nombres"]').value.trim().toLowerCase();
+    var apellidos = document.querySelector('input[name="apellidos"]').value.trim().toLowerCase();
+
+    if (!nombres || !apellidos) {
+        alert('Por favor ingresa primero los nombres y apellidos del estudiante.');
+        return;
+    }
+
+    // Tomar primer nombre y primer apellido
+    var pNombre = nombres.split(/\s+/)[0].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    var pApellido = apellidos.split(/\s+/)[0].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // Quitar caracteres no alfanuméricos
+    pNombre = pNombre.replace(/[^a-z0-9]/g, '');
+    pApellido = pApellido.replace(/[^a-z0-9]/g, '');
+
+    var emailSugerido = pNombre + '.' + pApellido + '@upds.edu.bo';
+    document.getElementById('email_institucional').value = emailSugerido;
+}
+</script>
 @endsection
 

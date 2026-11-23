@@ -76,14 +76,33 @@
                                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Sin Tutor Asignado</span>
                             @endif
                         </td>
+                        @php
+                            $hvali = (float) $p->horas_validadas;
+                            $hpend = (float) $p->registrosHoras->where('estado','pendiente')->sum('horas');
+                            $hobj  = (float) $p->horas_objetivo ?: 1;
+                            $pctV  = min(100, round(($hvali / $hobj) * 100, 1));
+                            $pctP  = min(100 - $pctV, round(($hpend / $hobj) * 100, 1));
+                        @endphp
                         <td>
-                            <strong>{{ $p->horas_validadas }}</strong> / {{ $p->horas_objetivo }} hrs
+                            <div class="fw-semibold text-success">{{ number_format($hvali,1) }}h</div>
+                            @if($hpend > 0)
+                                <small class="text-warning d-block" style="font-size:0.75rem;">
+                                    <i class="bi bi-clock me-1"></i>+{{ number_format($hpend,1) }}h en revisión
+                                </small>
+                            @endif
+                            <small class="text-muted" style="font-size:0.72rem;">/ {{ number_format($hobj,0) }} hrs requeridas</small>
                         </td>
-                        <td style="width: 150px;">
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: {{ $p->porcentaje_horas }}%"></div>
+                        <td style="width: 160px;">
+                            <div class="progress mb-1" style="height: 10px; border-radius:5px; background:#e9ecef;">
+                                <div class="progress-bar bg-success" style="width: {{ $pctV }}%" title="{{ $hvali }}h validadas"></div>
+                                <div class="progress-bar bg-warning" style="width: {{ $pctP }}%" title="{{ $hpend }}h en revisión"></div>
                             </div>
-                            <small class="text-muted">{{ $p->porcentaje_horas }}%</small>
+                            <small class="text-muted" style="font-size:0.72rem;">
+                                <span class="text-success fw-semibold">{{ $pctV }}%</span>
+                                @if($pctP > 0)
+                                    <span class="text-warning"> +{{ $pctP }}%</span>
+                                @endif
+                            </small>
                         </td>
                         <td><span class="badge-{{ $p->estado }}">{{ ucfirst(str_replace('_', ' ', $p->estado)) }}</span></td>
                         <td class="text-end pe-4">
