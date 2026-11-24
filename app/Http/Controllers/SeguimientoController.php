@@ -124,7 +124,15 @@ class SeguimientoController extends Controller
             'incidencias.registrador',
         ]);
 
-        $tutores = DocenteTutor::where('activo', true)->get();
+        $carreraId = $practica->solicitud->estudiante?->carrera_id;
+        $tutores = DocenteTutor::where('activo', true)
+            ->when($carreraId, function ($query) use ($carreraId) {
+                $query->where(function ($q) use ($carreraId) {
+                    $q->where('carrera_id', $carreraId)->orWhereNull('carrera_id');
+                });
+            })
+            ->with('carrera')
+            ->get();
 
         return view('seguimiento.show', compact('practica', 'tutores'));
     }
@@ -145,6 +153,15 @@ class SeguimientoController extends Controller
         $tutor = DocenteTutor::where('id', $request->tutor_id)->where('activo', true)->first();
         if (!$tutor) {
             return back()->withErrors(['tutor_id' => 'El docente tutor seleccionado no se encuentra activo para asignaciones.']);
+        }
+
+        // Control de Carrera: El docente tutor y el estudiante deben pertenecer a la misma carrera académica
+        $carreraEstudianteId = $practica->solicitud->estudiante?->carrera_id;
+        if ($carreraEstudianteId && $tutor->carrera_id && $tutor->carrera_id !== $carreraEstudianteId) {
+            $carreraNombre = $practica->solicitud->estudiante->carrera->nombre ?? 'la carrera del estudiante';
+            return back()->withErrors([
+                'tutor_id' => "No es posible asignar al tutor {$tutor->nombre_completo}: Por normativa institucional, el docente tutor debe pertenecer a la misma carrera que el estudiante ({$carreraNombre})."
+            ])->withInput();
         }
 
         $tutorAnterior  = $practica->tutor ? $practica->tutor->nombre_completo : 'Sin tutor';

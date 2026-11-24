@@ -178,7 +178,30 @@ class SolicitudController extends Controller
 
         $tiposDocumento = TipoDocumento::where('activo', true)->get();
 
-        return view('solicitudes.index', compact('solicitudes', 'documentos', 'tab', 'tiposDocumento', 'perPage'));
+        $practicasConcluidas = 0;
+        $tienePracticaActiva = false;
+        if ($user->isEstudiante() && $user->estudiante) {
+            $eId = $user->estudiante->id;
+            $practicasConcluidas = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $eId))
+                ->where('estado', 'concluida')
+                ->count();
+
+            $tienePracticaActiva = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $eId))
+                ->whereIn('estado', ['planificada', 'en_curso'])
+                ->exists() || SolicitudPractica::where('estudiante_id', $eId)
+                ->whereIn('estado', ['presentada', 'en_revision', 'observada'])
+                ->exists();
+        }
+
+        return view('solicitudes.index', compact(
+            'solicitudes',
+            'documentos',
+            'tab',
+            'tiposDocumento',
+            'perPage',
+            'practicasConcluidas',
+            'tienePracticaActiva'
+        ));
     }
 
     public function create(Request $request)
@@ -186,6 +209,36 @@ class SolicitudController extends Controller
         $user = Auth::user();
         if (!$user->isEstudiante()) {
             abort(403, 'Acción no autorizada. Solo los estudiantes pueden iniciar nuevas solicitudes de práctica.');
+        }
+
+        $estudiante = $user->estudiante;
+        if (!$estudiante) {
+            return redirect()->route('solicitudes.index')->withErrors(['error' => 'No tienes un perfil de estudiante asociado.']);
+        }
+
+        // Regla 1: Máximo 2 prácticas en toda la carrera
+        $practicasConcluidas = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+            ->where('estado', 'concluida')
+            ->count();
+
+        if ($practicasConcluidas >= 2) {
+            return redirect()->route('solicitudes.index')
+                ->with('info', 'Has cumplido satisfactoriamente las 2 prácticas profesionales exigidas por la UPDS.');
+        }
+
+        // Regla 2: No permitir 2 prácticas al mismo tiempo
+        $solicitudTramite = SolicitudPractica::where('estudiante_id', $estudiante->id)
+            ->whereIn('estado', ['presentada', 'en_revision', 'observada'])
+            ->first();
+
+        $practicaEnCurso = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+            ->whereIn('estado', ['planificada', 'en_curso'])
+            ->first();
+
+        if ($solicitudTramite || $practicaEnCurso) {
+            return redirect()->route('solicitudes.index')->withErrors([
+                'bloqueo' => 'Reglamento UPDS: No se permite cursar ni solicitar dos prácticas simultáneamente. Debes culminar y aprobar tu práctica en curso antes de postular a una segunda práctica.'
+            ]);
         }
 
         // Flujo de postulación: comprobar si llega organizacion_id preseleccionada
@@ -216,6 +269,31 @@ class SolicitudController extends Controller
 
         if (!$estudiante) {
             return back()->withErrors(['error' => 'No tienes un perfil de estudiante asociado.']);
+        }
+
+        // Control de 2 prácticas y simultaneidad
+        $practicasConcluidas = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+            ->where('estado', 'concluida')
+            ->count();
+
+        if ($practicasConcluidas >= 2) {
+            return redirect()->route('solicitudes.index')->withErrors([
+                'error' => 'Ya has completado el límite máximo reglamentario de 2 prácticas profesionales para tu carrera.'
+            ]);
+        }
+
+        $solicitudTramite = SolicitudPractica::where('estudiante_id', $estudiante->id)
+            ->whereIn('estado', ['presentada', 'en_revision', 'observada'])
+            ->first();
+
+        $practicaEnCurso = Practica::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+            ->whereIn('estado', ['planificada', 'en_curso'])
+            ->first();
+
+        if ($solicitudTramite || $practicaEnCurso) {
+            return redirect()->route('solicitudes.index')->withErrors([
+                'error' => 'Reglamento UPDS: No se permite cursar ni tramitar dos prácticas simultáneamente. Debes culminar y aprobar la práctica vigente.'
+            ]);
         }
 
         $request->validate([
@@ -286,7 +364,17 @@ class SolicitudController extends Controller
         }
 
         $solicitude->load(['estudiante.carrera', 'estudiante.requisitos.requisito', 'organizacion.responsables', 'periodo', 'documentos.tipoDocumento', 'historial.usuario', 'practica.tutor']);
-        $tiposDocumento = TipoDocumento::where('activo', true)->get();
+        
+        // Si el usuario es Estudiante, solo se le muestra la Carta de Solicitud de Práctica (y documento complementario opcional)
+        if ($user->isEstudiante()) {
+            $tiposDocumento = TipoDocumento::where('activo', true)
+                ->whereIn('id', [2, 1])
+                ->orderByRaw('id = 2 DESC')
+                ->get();
+        } else {
+            $tiposDocumento = TipoDocumento::where('activo', true)->get();
+        }
+
         return view('solicitudes.show', ['solicitud' => $solicitude, 'tiposDocumento' => $tiposDocumento]);
     }
 

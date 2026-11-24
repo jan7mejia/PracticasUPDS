@@ -11,6 +11,7 @@ class DocenteTutor extends Model
 
     protected $fillable = [
         'usuario_id',
+        'carrera_id',
         'nombres',
         'apellidos',
         'especialidad',
@@ -21,6 +22,11 @@ class DocenteTutor extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera_id');
+    }
 
     public function user()
     {

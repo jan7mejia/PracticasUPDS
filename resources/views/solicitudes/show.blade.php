@@ -263,7 +263,7 @@
                                 <label class="form-label small fw-semibold text-muted mb-1">Tipo de documento *</label>
                                 <select name="tipo_documento_id" id="selectTipoDoc" class="form-select form-select-sm" required>
                                     @foreach($tiposDocumento as $td)
-                                        <option value="{{ $td->id }}">{{ $td->nombre }}</option>
+                                        <option value="{{ $td->id }}" {{ $td->id == 2 ? 'selected' : '' }}>{{ $td->nombre }}</option>
                                     @endforeach
                                 </select>
                             </div>

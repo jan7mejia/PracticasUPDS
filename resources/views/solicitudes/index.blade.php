@@ -11,11 +11,56 @@
         <p class="text-muted small mb-0">Gestión de trámites de inicio de práctica y validación de expedientes.</p>
     </div>
     @if(auth()->user()->isEstudiante())
-        <a href="{{ route('solicitudes.create') }}" class="btn btn-upds">
-            <i class="bi bi-plus-lg me-1"></i> + Nueva solicitud
-        </a>
+        @if(($practicasConcluidas ?? 0) >= 2)
+            <button class="btn btn-secondary rounded-pill px-3 fw-semibold" disabled title="Has completado tus 2 prácticas reglamentarias">
+                <i class="bi bi-mortarboard-fill me-1 text-warning"></i> Prácticas Completadas (2/2)
+            </button>
+        @elseif($tienePracticaActiva ?? false)
+            <button class="btn btn-secondary rounded-pill px-3" disabled title="Ya tienes una práctica o solicitud activa en trámite">
+                <i class="bi bi-lock-fill me-1"></i> Trámite en Curso
+            </button>
+        @else
+            <a href="{{ route('solicitudes.create') }}" class="btn btn-upds">
+                <i class="bi bi-plus-lg me-1"></i> + Nueva solicitud
+            </a>
+        @endif
     @endif
 </div>
+
+@if(auth()->user()->isEstudiante())
+    @if(($practicasConcluidas ?? 0) >= 2)
+        <!-- Banner de Felicitación: 2 Prácticas Cumplidas -->
+        <div class="card border-0 shadow-sm p-4 rounded-4 mb-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0369a1 100%);">
+            <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+                <div class="bg-white bg-opacity-20 rounded-circle p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px; font-size: 2rem;">
+                    🎓
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-warning text-dark px-2 py-1 rounded-pill fw-bold" style="font-size: 0.72rem;">REQUISITO DE GRADUACIÓN 100% CUMPLIDO</span>
+                    </div>
+                    <h5 class="fw-bold mb-1">¡Felicitaciones, {{ auth()->user()->name }}!</h5>
+                    <p class="mb-0 small" style="opacity: 0.92; line-height: 1.5;">
+                        Has completado y aprobado satisfactoriamente las <strong>2 Prácticas Profesionales obligatorias (Práctica I y Práctica II)</strong> exigidas por el plan de estudios de la Universidad Privada Domingo Savio.
+                        Tu modalidad de prácticas pre-profesionales se encuentra completamente acreditada en el sistema académico. ¡Éxitos en tu futuro profesional!
+                    </p>
+                </div>
+            </div>
+        </div>
+    @elseif($tienePracticaActiva ?? false)
+        <!-- Aviso Informativo: Práctica en curso (No simultáneas) -->
+        <div class="alert alert-info border-0 shadow-sm p-3 rounded-4 mb-4" style="background: #eff6ff; border-left: 4px solid #2563eb !important;">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-info-circle-fill fs-3 text-primary"></i>
+                <div class="small text-navy">
+                    <strong class="d-block mb-1 text-primary">Práctica Profesional en Curso / Trámite Activo</strong>
+                    Según el Reglamento de Prácticas de la UPDS, <strong>no se permite cursar dos prácticas simultáneamente</strong>.
+                    Una vez que concluyas y apruebes tu práctica actual, el sistema te habilitará de forma automática la postulación a tu segunda y última práctica profesional.
+                </div>
+            </div>
+        </div>
+    @endif
+@endif
 
 <!-- Tabs con contadores reales -->
 <ul class="nav nav-pills mb-4 gap-2" id="solicitudesTab" role="tablist">

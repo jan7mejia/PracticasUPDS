@@ -780,13 +780,22 @@
             <form action="{{ route('seguimiento.asignar-tutor', $practica->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-mortarboard me-1"></i>
+                        <strong>Filtro por Carrera:</strong> Mostrando únicamente docentes tutores habilitados para la carrera de <strong>{{ $practica->solicitud->estudiante->carrera->nombre ?? 'la carrera del estudiante' }}</strong>.
+                    </div>
                     <label class="form-label small fw-semibold">Seleccionar Docente Tutor *</label>
                     <select name="tutor_id" class="form-select" required>
-                        <option value="">-- Elige un tutor --</option>
-                        @php $listaTutores = $tutores ?? \App\Models\DocenteTutor::where('activo', true)->get(); @endphp
+                        <option value="">-- Elige un docente tutor de la carrera --</option>
+                        @php 
+                            $cId = $practica->solicitud->estudiante?->carrera_id;
+                            $listaTutores = $tutores ?? \App\Models\DocenteTutor::where('activo', true)
+                                ->when($cId, fn($q) => $q->where(fn($sq) => $sq->where('carrera_id', $cId)->orWhereNull('carrera_id')))
+                                ->get(); 
+                        @endphp
                         @foreach($listaTutores as $t)
                             <option value="{{ $t->id }}" {{ $practica->tutor_id == $t->id ? 'selected' : '' }}>
-                                {{ $t->nombre_completo }} ({{ $t->especialidad }})
+                                {{ $t->nombre_completo }} — {{ $t->especialidad }} ({{ $t->carrera->nombre ?? 'General' }})
                             </option>
                         @endforeach
                     </select>
