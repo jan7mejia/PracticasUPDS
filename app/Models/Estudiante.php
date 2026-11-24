@@ -45,6 +45,11 @@ class Estudiante extends Model
         return $this->hasMany(SolicitudPractica::class, 'estudiante_id');
     }
 
+    public function practicas()
+    {
+        return $this->hasManyThrough(Practica::class, SolicitudPractica::class, 'estudiante_id', 'solicitud_id');
+    }
+
     public function getNombreCompletoAttribute()
     {
         return "{$this->nombres} {$this->apellidos}";

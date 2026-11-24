@@ -239,33 +239,23 @@ class SeguimientoController extends Controller
             return back()->withErrors(['fecha' => "La fecha no está dentro del periodo permitido: la práctica concluyó formalmente el {$practica->fecha_fin_real->format('d/m/Y')}."])->withInput();
         }
 
-        // 4. RF-11: Controlar suma diaria (máximo horas diarias según configuración institucional)
-        // Usar transacción y lockForUpdate para controlar concurrencia de operaciones simultáneas
+        // 4. Regla UPDS: Un único registro de jornada por día (asistencia a turno continuo)
         return DB::transaction(function () use ($practica, $request, $maxDiarias) {
-            $horasDelDia = (float) RegistroHora::where('practica_id', $practica->id)
+            $registroPrevio = RegistroHora::where('practica_id', $practica->id)
                 ->whereDate('fecha', $request->fecha)
-                ->whereIn('estado', ['pendiente', 'validada'])
                 ->lockForUpdate()
-                ->sum('horas');
+                ->first();
 
-            if (($horasDelDia + (float)$request->horas) > $maxDiarias) {
-                $disponibles = max(0, $maxDiarias - $horasDelDia);
-                if ($horasDelDia > 0) {
-                    $msg = "Ya registraste {$horasDelDia} horas este día. Solo puedes añadir {$disponibles} hora(s).";
-                } else {
-                    $msg = "El máximo diario es de {$maxDiarias} horas.";
-                }
-                return back()->withErrors(['horas' => $msg])->withInput();
+            if ($registroPrevio) {
+                $fechaFmt = \Carbon\Carbon::parse($request->fecha)->format('d/m/Y');
+                return back()->withErrors([
+                    'horas' => "Ya registraste tu jornada de práctica para el día {$fechaFmt} ({$registroPrevio->horas} hrs registradas en estado '{$registroPrevio->estado}'). Por normativa académica de la UPDS, solo se permite un único registro de asistencia por día."
+                ])->withInput();
             }
 
-            // 5. RF-11: Rechazar duplicaciones incompatibles (misma fecha y descripción idéntica)
-            $duplicado = RegistroHora::where('practica_id', $practica->id)
-                ->whereDate('fecha', $request->fecha)
-                ->where('descripcion', trim($request->descripcion))
-                ->exists();
-
-            if ($duplicado) {
-                return back()->withErrors(['descripcion' => 'Ya existe un registro de horas con idéntica descripción y fecha en esta práctica.'])->withInput();
+            // Validar que no supere el máximo diario permitido (4.0 horas)
+            if ((float)$request->horas > $maxDiarias) {
+                return back()->withErrors(['horas' => "El máximo permitido por jornada diaria es de {$maxDiarias} horas."])->withInput();
             }
 
             // 6. Guardar inicialmente como pendiente

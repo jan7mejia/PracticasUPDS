@@ -822,6 +822,10 @@
             <form action="{{ route('seguimiento.horas.store', $practica->id) }}" method="POST">
                 @csrf
                 <div class="modal-body p-4">
+                    <div class="alert alert-light border py-2 px-3 small mb-3 text-muted rounded-3" style="font-size: 0.8rem; background: #f8fafc;">
+                        <i class="bi bi-calendar-check text-primary me-1"></i>
+                        <strong>Normativa de Turno:</strong> Cada jornada corresponde a tu turno asignado (mañana o tarde). Por tanto, <strong>solo se permite un único registro de asistencia por día</strong>.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Fecha de la jornada *</label>
                         <input type="date" name="fecha" class="form-control" value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>

@@ -33,6 +33,11 @@ class DocenteTutor extends Model
         return $this->belongsTo(User::class, 'usuario_id');
     }
 
+    public function usuario()
+    {
+        return $this->user();
+    }
+
     public function practicas()
     {
         return $this->hasMany(Practica::class, 'tutor_id');

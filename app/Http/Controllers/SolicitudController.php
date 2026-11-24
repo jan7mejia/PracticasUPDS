@@ -176,7 +176,14 @@ class SolicitudController extends Controller
             $documentos = $docQuery->orderBy('created_at', 'desc')->orderBy('id', 'desc')->paginate($perPage, ['*'], 'doc_page')->withQueryString();
         }
 
-        $tiposDocumento = TipoDocumento::where('activo', true)->get();
+        // Para el estudiante, la lista desplegable solo debe contener la Carta de solicitud de práctica
+        if ($user->isEstudiante()) {
+            $tiposDocumento = TipoDocumento::where('activo', true)
+                ->where('id', 2) // Exclusivamente Carta de solicitud de práctica
+                ->get();
+        } else {
+            $tiposDocumento = TipoDocumento::where('activo', true)->get();
+        }
 
         $practicasConcluidas = 0;
         $tienePracticaActiva = false;
@@ -365,11 +372,10 @@ class SolicitudController extends Controller
 
         $solicitude->load(['estudiante.carrera', 'estudiante.requisitos.requisito', 'organizacion.responsables', 'periodo', 'documentos.tipoDocumento', 'historial.usuario', 'practica.tutor']);
         
-        // Si el usuario es Estudiante, solo se le muestra la Carta de Solicitud de Práctica (y documento complementario opcional)
+        // Si el usuario es Estudiante, solo se le muestra la Carta de Solicitud de Práctica
         if ($user->isEstudiante()) {
             $tiposDocumento = TipoDocumento::where('activo', true)
-                ->whereIn('id', [2, 1])
-                ->orderByRaw('id = 2 DESC')
+                ->where('id', 2) // Exclusivamente Carta de solicitud de práctica
                 ->get();
         } else {
             $tiposDocumento = TipoDocumento::where('activo', true)->get();
