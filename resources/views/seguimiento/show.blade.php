@@ -11,11 +11,49 @@
         <p class="text-muted small mb-0">Control de bitácora de horas, informes de avance, observaciones y evaluación final.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
+        @if(auth()->user()->isEstudiante())
+            <a href="{{ route('seguimiento.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Mis Prácticas
+            </a>
+        @else
+            <a href="{{ route('seguimiento.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Listado
+            </a>
+        @endif
         <span class="badge-{{ $practica->estado }} fs-6 px-3 py-2">
             {{ ucfirst(str_replace('_', ' ', $practica->estado)) }}
         </span>
     </div>
 </div>
+
+@if(isset($todasPracticasEstudiante) && $todasPracticasEstudiante->count() > 1)
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white border-start border-4 border-primary">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="text-muted small fw-bold text-uppercase d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-collection text-primary me-1"></i> Expediente de Prácticas del Estudiante ({{ $todasPracticasEstudiante->count() }} registradas)
+                </span>
+                <span class="small text-secondary">
+                    Selecciona una práctica para revisar su bitácora de horas, cronograma, informes y notas:
+                </span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                @foreach($todasPracticasEstudiante as $idx => $pItem)
+                    <a href="{{ route('seguimiento.show', $pItem->id) }}"
+                       class="btn btn-sm {{ $pItem->id === $practica->id ? 'btn-primary' : 'btn-outline-secondary' }} rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-2 shadow-sm">
+                        <span>Práctica {{ $idx + 1 }}: {{ Str::limit($pItem->solicitud->organizacion->nombre, 24) }}</span>
+                        <span class="badge {{ $pItem->estado === 'concluida' ? 'bg-success' : 'bg-warning text-dark' }}">
+                            {{ ucfirst($pItem->estado) }}
+                            @if($pItem->evaluacionFinal)
+                                &bull; Nota: {{ $pItem->evaluacionFinal->calificacion }}
+                            @endif
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+@endif
 
 <!-- ══════════════════════════════════════════════════════════════════════════════ -->
 <!-- SECCIÓN 1: RESUMEN GENERAL Y ESTADO DE LA PRÁCTICA -->
@@ -169,7 +207,7 @@
             </div>
 
             <div class="small text-muted mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
-                <span>Duración estimada: <strong>{{ $practica->duracion_meses ?? 3 }} meses</strong> ({{ $practica->version_reglamento ?? 'v2_automatizado' }})</span>
+                <span>Duración estimada: <strong>{{ $practica->duracion_meses ?? 3 }} meses</strong></span>
                 <span class="text-success fw-semibold"><i class="bi bi-shield-check me-1"></i>Reglamento UPDS</span>
             </div>
         </div>

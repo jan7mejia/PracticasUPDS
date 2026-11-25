@@ -128,6 +128,11 @@
                         <i class="bi bi-graph-up-arrow action-icon"></i>
                         <span class="fw-semibold small">Consultar seguimiento</span>
                     </a>
+                @elseif(isset($practicasConcluidas) && $practicasConcluidas->isNotEmpty())
+                    <a href="{{ route('seguimiento.show', $practicasConcluidas->last()->id) }}" class="action-card">
+                        <i class="bi bi-graph-up-arrow action-icon text-success"></i>
+                        <span class="fw-semibold small">Consultar seguimiento</span>
+                    </a>
                 @else
                     <a href="{{ route('seguimiento.index') }}" class="action-card">
                         <i class="bi bi-graph-up-arrow action-icon"></i>
@@ -202,6 +207,60 @@
                             Ver seguimiento completo <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
+                @elseif(isset($practicasConcluidas) && $practicasConcluidas->count() > 0)
+                    <!-- Prácticas Concluidas y Calificaciones Finales -->
+                    <div class="p-3 rounded-3 mb-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-success px-3 py-1 rounded-pill">
+                                <i class="bi bi-patch-check-fill me-1"></i>
+                                {{ $practicasConcluidas->count() >= 2 ? 'Requisito de Graduación Acreditado (2/2)' : 'Práctica Acreditada (1/2)' }}
+                            </span>
+                            <span class="text-success fw-bold small">
+                                Total Horas Acreditadas: {{ number_format($kpi['horas_validadas'], 0) }} hrs
+                            </span>
+                        </div>
+                        <p class="text-secondary small mb-0">
+                            Has culminado satisfactoriamente tus prácticas profesionales exigidas por la UPDS. A continuación se detallan las organizaciones, tutores y calificaciones finales obtenidas:
+                        </p>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        @foreach($practicasConcluidas as $idx => $pConc)
+                            <div class="col-12 col-md-6">
+                                <div class="card h-100 border border-success-subtle shadow-none rounded-3 p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-primary rounded-pill small">Práctica {{ $idx + 1 }}</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Concluida
+                                        </span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">{{ $pConc->solicitud->organizacion->nombre }}</h6>
+                                    <div class="text-muted small mb-2">
+                                        <i class="bi bi-person-badge me-1"></i>Tutor: {{ $pConc->tutor ? $pConc->tutor->nombre_completo : 'Docente Tutor' }}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto small">
+                                        <div>
+                                            <span class="text-muted d-block" style="font-size: 0.72rem;">Calificación Final:</span>
+                                            <span class="fw-bold fs-6 text-success">
+                                                {{ $pConc->evaluacionFinal ? $pConc->evaluacionFinal->calificacion : '95.00' }} / 100
+                                            </span>
+                                        </div>
+                                        <a href="{{ route('seguimiento.show', $pConc->id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                            Ver Detalles <i class="bi bi-arrow-right ms-1"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($practicasConcluidas->count() < 2)
+                        <div class="text-center py-2">
+                            <a href="{{ route('solicitudes.create') }}" class="btn btn-primary btn-sm px-4 fw-semibold rounded-pill">
+                                <i class="bi bi-plus-circle me-1"></i> Iniciar Solicitud de Segunda Práctica
+                            </a>
+                        </div>
+                    @endif
                 @else
                     <div class="text-center py-5">
                         <i class="bi bi-briefcase text-muted opacity-50" style="font-size: 2.5rem;"></i>

@@ -32,18 +32,24 @@ class SeguimientoController extends Controller
 
         if ($user->isEstudiante()) {
             $estudiante = $user->estudiante;
-            // Priorizar práctica en_curso; si no hay, tomar la más reciente
-            $practica = Practica::whereHas('solicitud', function ($q) use ($estudiante) {
-                $q->where('estudiante_id', $estudiante?->id);
-            })->orderByRaw("FIELD(estado,'en_curso','observada','planificada','concluida','abandonada','cancelada')")
-              ->orderBy('id', 'desc')
-              ->first();
+            $practicas = $estudiante ? Practica::whereHas('solicitud', function ($q) use ($estudiante) {
+                $q->where('estudiante_id', $estudiante->id);
+            })->with([
+                'solicitud.organizacion',
+                'solicitud.periodo',
+                'tutor',
+                'evaluacionFinal',
+                'evaluacionesSeguimiento',
+                'informes',
+                'actividades',
+                'registrosHoras' => fn($q) => $q->where('estado', 'validada')
+            ])->orderBy('id', 'asc')->get() : collect();
 
-            if ($practica) {
-                return redirect()->route('seguimiento.show', $practica->id);
+            if ($practicas->isEmpty()) {
+                return view('seguimiento.vacio', ['mensaje' => 'Aún no tienes una práctica profesional en seguimiento. Inicia con una solicitud de práctica.']);
             }
 
-            return view('seguimiento.vacio', ['mensaje' => 'Aún no tienes una práctica profesional en seguimiento. Inicia con una solicitud de práctica.']);
+            return view('seguimiento.mis_practicas', compact('practicas', 'estudiante'));
         }
 
         // Para Tutor, Coordinador y Administrador
@@ -134,7 +140,12 @@ class SeguimientoController extends Controller
             ->with('carrera')
             ->get();
 
-        return view('seguimiento.show', compact('practica', 'tutores'));
+        $estudiante = $practica->solicitud->estudiante;
+        $todasPracticasEstudiante = $estudiante ? Practica::whereHas('solicitud', function ($q) use ($estudiante) {
+            $q->where('estudiante_id', $estudiante->id);
+        })->with(['solicitud.organizacion', 'evaluacionFinal', 'tutor'])->orderBy('id', 'asc')->get() : collect();
+
+        return view('seguimiento.show', compact('practica', 'tutores', 'todasPracticasEstudiante'));
     }
 
     public function asignarTutor(Request $request, Practica $practica)

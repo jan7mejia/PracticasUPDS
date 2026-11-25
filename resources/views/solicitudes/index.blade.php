@@ -163,10 +163,15 @@
                                         {{ ucfirst(str_replace('_', ' ', $sol->estado)) }}
                                     </span>
                                 </td>
-                                <td class="text-end pe-4">
-                                    <a href="{{ route('solicitudes.show', $sol->id) }}" class="btn btn-sm btn-light border text-primary" title="Ver Expediente Completo">
+                                <td class="text-end pe-4 text-nowrap">
+                                    <a href="{{ route('solicitudes.show', $sol->id) }}" class="btn btn-sm btn-light border text-primary" title="Ver Expediente de Solicitud">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    @if($sol->practica)
+                                        <a href="{{ route('seguimiento.show', $sol->practica->id) }}" class="btn btn-sm btn-light border text-success ms-1" title="Ver Seguimiento y Calificaciones">
+                                            <i class="bi bi-graph-up-arrow"></i>
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
