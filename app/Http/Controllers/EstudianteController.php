@@ -86,16 +86,17 @@ class EstudianteController extends Controller
             abort(403, 'Acceso denegado. No tienes autorización para crear estudiantes.');
         }
 
-        $crearCuenta = ($request->input('tipo_cuenta', 'nueva') === 'nueva') || $request->filled('email_institucional');
+        $tipoCuenta = $request->input('tipo_cuenta', 'nueva');
+        $crearCuenta = ($tipoCuenta === 'nueva') || ($request->filled('email_institucional') && $tipoCuenta !== 'existente' && $tipoCuenta !== 'ninguna');
 
         $rules = [
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:120',
-            'ru' => 'required|string|max:40|unique:estudiantes,ru',
-            'ci' => 'nullable|string|max:40|unique:estudiantes,ci',
+            'nombres'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'apellidos'  => ['required', 'string', 'max:120', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'ru'         => ['required', 'string', 'max:20', 'unique:estudiantes,ru', 'regex:/^[0-9]{6,10}$/'],
+            'ci'         => ['nullable', 'string', 'max:20', 'unique:estudiantes,ci', 'regex:/^[0-9]{5,9}(?:[\s\-]?[0-9A-Za-z]{1,3})?$/'],
             'carrera_id' => 'required|exists:carreras,id',
-            'semestre' => 'nullable|integer|between:1,15',
-            'telefono' => 'nullable|string|max:30',
+            'semestre'   => 'nullable|integer|between:1,15',
+            'telefono'   => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
         ];
 
         if ($crearCuenta) {
@@ -106,15 +107,20 @@ class EstudianteController extends Controller
         }
 
         $request->validate($rules, [
-            'nombres.required' => 'Ingresa los nombres del estudiante.',
-            'apellidos.required' => 'Ingresa los apellidos del estudiante.',
-            'ru.required' => 'El Registro Universitario (RU) es obligatorio.',
-            'ru.unique' => 'El RU ingresado ya se encuentra registrado.',
-            'carrera_id.required' => 'Selecciona la carrera académica.',
+            'nombres.required'           => 'Ingresa los nombres del estudiante.',
+            'nombres.regex'              => 'Los nombres solo deben contener letras y espacios, no se permiten números.',
+            'apellidos.required'         => 'Ingresa los apellidos del estudiante.',
+            'apellidos.regex'            => 'Los apellidos solo deben contener letras y espacios, no se permiten números.',
+            'ru.required'                => 'El Registro Universitario (RU) es obligatorio.',
+            'ru.unique'                  => 'El RU ingresado ya se encuentra registrado.',
+            'ru.regex'                   => 'El RU debe contener únicamente números (formato UPDS ej: 3200465).',
+            'ci.regex'                   => 'La Cédula de Identidad (CI) debe tener un formato boliviano válido (5 a 9 dígitos numéricos).',
+            'telefono.regex'             => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (celular de 8 dígitos empezando en 6 o 7, o fijo de Cochabamba empezando en 4).',
+            'carrera_id.required'        => 'Selecciona la carrera académica.',
             'email_institucional.required' => 'Ingresa el correo institucional UPDS para la cuenta del estudiante.',
             'email_institucional.unique' => 'Ya existe un usuario registrado con este correo electrónico institucional.',
-            'password_inicial.required' => 'Ingresa la contraseña inicial de acceso.',
-            'password_inicial.min' => 'La contraseña debe contener al menos 6 caracteres.',
+            'password_inicial.required'  => 'Ingresa la contraseña inicial de acceso.',
+            'password_inicial.min'       => 'La contraseña debe contener al menos 6 caracteres.',
         ]);
 
         $estudiante = DB::transaction(function () use ($request, $crearCuenta) {
@@ -149,11 +155,18 @@ class EstudianteController extends Controller
                     $q->whereNull('carrera_id')->orWhere('carrera_id', $request->carrera_id);
                 })->get();
 
+            $semestreVal = (int) $request->semestre;
+            $cumple = $request->has('cumple_requisitos') ? $request->boolean('cumple_requisitos') : ($semestreVal >= 7);
+            $estadoInicial = $cumple ? 'cumple' : 'pendiente';
+
             foreach ($requisitos as $req) {
                 EstudianteRequisito::create([
                     'estudiante_id' => $estudiante->id,
-                    'requisito_id' => $req->id,
-                    'estado' => 'pendiente',
+                    'requisito_id'  => $req->id,
+                    'estado'        => $estadoInicial,
+                    'observacion'   => $cumple ? "Verificado por registro regular (Semestre {$semestreVal}°)" : null,
+                    'verificado_por'=> $cumple ? auth()->id() : null,
+                    'fecha_verificacion' => $cumple ? now() : null,
                 ]);
             }
 
@@ -203,14 +216,14 @@ class EstudianteController extends Controller
         }
 
         $rules = [
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'required|string|max:120',
-            'ru' => 'required|string|max:40|unique:estudiantes,ru,' . $estudiante->id,
-            'ci' => 'nullable|string|max:40|unique:estudiantes,ci,' . $estudiante->id,
+            'nombres'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'apellidos'  => ['required', 'string', 'max:120', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'ru'         => ['required', 'string', 'max:20', 'unique:estudiantes,ru,' . $estudiante->id, 'regex:/^[0-9]{6,10}$/'],
+            'ci'         => ['nullable', 'string', 'max:20', 'unique:estudiantes,ci,' . $estudiante->id, 'regex:/^[0-9]{5,9}(?:[\s\-]?[0-9A-Za-z]{1,3})?$/'],
             'carrera_id' => 'required|exists:carreras,id',
-            'semestre' => 'nullable|integer|between:1,15',
-            'telefono' => 'nullable|string|max:30',
-            'estado' => 'required|in:activo,inactivo,egresado',
+            'semestre'   => 'nullable|integer|between:1,15',
+            'telefono'   => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'estado'     => 'required|in:activo,inactivo,egresado',
         ];
 
         if (!$estudiante->usuario_id && $request->filled('email_institucional')) {
@@ -218,7 +231,13 @@ class EstudianteController extends Controller
             $rules['password_inicial'] = 'required|string|min:6';
         }
 
-        $request->validate($rules);
+        $request->validate($rules, [
+            'nombres.regex'   => 'Los nombres solo deben contener letras y espacios, no se permiten números.',
+            'apellidos.regex' => 'Los apellidos solo deben contener letras y espacios, no se permiten números.',
+            'ru.regex'        => 'El RU debe contener únicamente números (formato UPDS ej: 3200465).',
+            'ci.regex'        => 'La Cédula de Identidad (CI) debe tener un formato boliviano válido (5 a 9 dígitos numéricos).',
+            'telefono.regex'  => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (celular de 8 dígitos empezando en 6 o 7, o fijo de Cochabamba empezando en 4).',
+        ]);
 
         DB::transaction(function () use ($request, $estudiante) {
             $estudiante->update($request->only([
@@ -247,7 +266,7 @@ class EstudianteController extends Controller
     public function verificarRequisito(Request $request, Estudiante $estudiante, EstudianteRequisito $requisito)
     {
         if (auth()->user()->isTutor() || auth()->user()->isEstudiante()) {
-            abort(403, 'Acceso denegado. Solo la coordinación académica puede verificar requisitos académicos.');
+            abort(403, 'Acceso denegado. Solo la coordinación académica o administración puede verificar requisitos académicos.');
         }
 
         $request->validate([
@@ -263,6 +282,22 @@ class EstudianteController extends Controller
         ]);
 
         return back()->with('success', "Requisito verificado como: " . strtoupper($request->estado) . ".");
+    }
+
+    public function validarTodosRequisitos(Request $request, Estudiante $estudiante)
+    {
+        if (auth()->user()->isTutor() || auth()->user()->isEstudiante()) {
+            abort(403, 'Acceso denegado. Solo la coordinación académica o administración puede validar requisitos.');
+        }
+
+        $estudiante->requisitos()->update([
+            'estado' => 'cumple',
+            'observacion' => 'Validado conforme por verificación de expediente para prácticas.',
+            'verificado_por' => auth()->id(),
+            'fecha_verificacion' => now(),
+        ]);
+
+        return back()->with('success', 'Todos los requisitos académicos obligatorios han sido validados como CUMPLE.');
     }
 }
 

@@ -71,24 +71,34 @@ class AdminController extends Controller
         $roles = Role::orderBy('nombre')->get();
         $estudiantesSinCuenta = Estudiante::whereNull('usuario_id')->with('carrera')->orderBy('apellidos')->get();
         $tutoresSinCuenta = DocenteTutor::whereNull('usuario_id')->orderBy('apellidos')->get();
+        $carreras = Carrera::where('activa', true)->orderBy('nombre')->get();
 
-        return view('admin.usuarios.create', compact('roles', 'estudiantesSinCuenta', 'tutoresSinCuenta'));
+        return view('admin.usuarios.create', compact('roles', 'estudiantesSinCuenta', 'tutoresSinCuenta', 'carreras'));
     }
 
     public function usuariosStore(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:160',
-            'email'    => 'required|email|max:190|unique:users,email',
-            'rol_id'   => 'required|exists:roles,id',
-            'password' => 'required|confirmed|min:8',
-            'activo'   => 'nullable|boolean',
+            'name'          => ['required', 'string', 'max:160', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'email'         => 'required|email|max:190|unique:users,email',
+            'rol_id'        => 'required|exists:roles,id',
+            'password'      => 'required|confirmed|min:8',
+            'activo'        => 'nullable|boolean',
             'estudiante_id' => 'nullable|exists:estudiantes,id',
-            'tutor_id' => 'nullable|exists:docentes_tutores,id',
+            'carrera_id'    => 'nullable|exists:carreras,id',
+            'semestre'      => 'nullable|integer|min:1|max:12',
+            'ru'            => ['nullable', 'string', 'max:20', 'unique:estudiantes,ru', 'regex:/^[0-9]{6,10}$/'],
+            'ci'            => ['nullable', 'string', 'max:20', 'regex:/^[0-9]{5,9}(?:[\s\-]?[0-9A-Za-z]{1,3})?$/'],
+            'tutor_id'      => 'nullable|exists:docentes_tutores,id',
+            'especialidad'  => 'nullable|string|max:160',
         ], [
-            'email.unique' => 'Ya existe una cuenta registrada con este correo electrónico institucional.',
+            'name.regex'         => 'El nombre completo solo debe contener letras y espacios, no se permiten números.',
+            'email.unique'       => 'Ya existe una cuenta registrada con este correo electrónico institucional.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
-            'password.min' => 'La contraseña debe contener al menos 8 caracteres.',
+            'password.min'       => 'La contraseña debe contener al menos 8 caracteres.',
+            'ru.unique'          => 'El Registro Universitario (RU) ya pertenece a otro estudiante.',
+            'ru.regex'           => 'El Registro Universitario (RU) debe contener únicamente números (formato UPDS ej: 3200465).',
+            'ci.regex'           => 'La Cédula de Identidad (CI) debe tener formato válido de Bolivia (entre 5 y 9 dígitos numéricos).',
         ]);
 
         $rol = Role::findOrFail($request->rol_id);
@@ -116,25 +126,44 @@ class AdminController extends Controller
                 if ($estudiante && is_null($estudiante->usuario_id)) {
                     $estudiante->update(['usuario_id' => $usuario->id]);
                 }
-            } else {
-                // Crear ficha académica completa de estudiante para que exista de inmediato en la base de datos
-                $partes = explode(' ', trim($request->name), 2);
-                $carrera = Carrera::first();
-                $ruGenerado = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
-                while (Estudiante::where('ru', $ruGenerado)->exists()) {
-                    $ruGenerado = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+            } elseif ($request->filled('carrera_id')) {
+                // El Administrador completó los datos académicos: Crear ficha académica inmediata
+                $partes = preg_split('/\s+/', trim($request->name));
+                $totalPartes = count($partes);
+                if ($totalPartes === 1) {
+                    $nombres = $partes[0];
+                    $apellidos = '';
+                } elseif ($totalPartes === 2) {
+                    $nombres = $partes[0];
+                    $apellidos = $partes[1];
+                } elseif ($totalPartes === 3) {
+                    $nombres = $partes[0];
+                    $apellidos = $partes[1] . ' ' . $partes[2];
+                } else {
+                    $nombres = $partes[0] . ' ' . $partes[1];
+                    $apellidos = implode(' ', array_slice($partes, 2));
+                }
+
+                $carreraId = $request->input('carrera_id');
+                
+                $ru = trim((string) $request->input('ru'));
+                if (empty($ru)) {
+                    $ru = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+                    while (Estudiante::where('ru', $ru)->exists()) {
+                        $ru = '32' . str_pad((string) mt_rand(10000, 99999), 5, '0', STR_PAD_LEFT);
+                    }
                 }
 
                 $estudiante = Estudiante::create([
                     'usuario_id' => $usuario->id,
-                    'carrera_id' => $carrera ? $carrera->id : 1,
-                    'ru' => $ruGenerado,
-                    'ci' => null,
-                    'nombres' => $partes[0] ?? $request->name,
-                    'apellidos' => $partes[1] ?? 'Estudiante',
-                    'telefono' => '',
-                    'semestre' => 7,
-                    'estado' => 'activo',
+                    'carrera_id' => $carreraId,
+                    'ru'         => $ru,
+                    'ci'         => $request->filled('ci') ? trim($request->input('ci')) : null,
+                    'nombres'    => $nombres,
+                    'apellidos'  => $apellidos,
+                    'telefono'   => '',
+                    'semestre'   => $request->input('semestre') ?: 7,
+                    'estado'     => 'activo',
                 ]);
 
                 // Asignar requisitos académicos base
@@ -143,14 +172,23 @@ class AdminController extends Controller
                         $q->whereNull('carrera_id')->orWhere('carrera_id', $estudiante->carrera_id);
                     })->get();
 
+                $semestreVal = (int) ($request->input('semestre') ?: 7);
+                $cumple = $request->has('cumple_requisitos') ? $request->boolean('cumple_requisitos') : ($semestreVal >= 7);
+                $estadoInicial = $cumple ? 'cumple' : 'pendiente';
+
                 foreach ($requisitos as $req) {
                     EstudianteRequisito::create([
                         'estudiante_id' => $estudiante->id,
-                        'requisito_id' => $req->id,
-                        'estado' => 'pendiente',
+                        'requisito_id'  => $req->id,
+                        'estado'        => $estadoInicial,
+                        'observacion'   => $cumple ? "Verificado institucionalmente al registrar cuenta de estudiante regular (Semestre {$semestreVal}°)" : null,
+                        'verificado_por'=> $cumple ? auth()->id() : null,
+                        'fecha_verificacion' => $cumple ? now() : null,
                     ]);
                 }
             }
+            // Si no se envió carrera_id ni estudiante_id, la cuenta queda creada
+            // y Coordinación Académica la completará posteriormente en el módulo Estudiantes.
         } elseif ($rol->codigo === 'tutor') {
             if ($request->filled('tutor_id')) {
                 $tutor = DocenteTutor::find($request->tutor_id);
@@ -158,22 +196,30 @@ class AdminController extends Controller
                     $tutor->update(['usuario_id' => $usuario->id]);
                 }
             } else {
-                // Crear perfil docente base si no existe
-                $partes = explode(' ', trim($request->name), 2);
+                // Crear perfil docente base con especialidad personalizada
+                $partes = preg_split('/\s+/', trim($request->name));
+                $totalPartes = count($partes);
+                $nombres = $totalPartes > 2 ? ($partes[0] . ' ' . $partes[1]) : $partes[0];
+                $apellidos = $totalPartes > 2 ? implode(' ', array_slice($partes, 2)) : ($partes[1] ?? '');
+
                 DocenteTutor::create([
-                    'usuario_id' => $usuario->id,
-                    'nombres' => $partes[0] ?? $request->name,
-                    'apellidos' => $partes[1] ?? 'Docente',
-                    'especialidad' => 'Docencia e Investigación',
-                    'activo' => 1,
+                    'usuario_id'   => $usuario->id,
+                    'nombres'      => $nombres,
+                    'apellidos'    => $apellidos,
+                    'especialidad' => $request->filled('especialidad') ? trim($request->input('especialidad')) : 'Docencia e Investigación',
+                    'activo'       => 1,
                 ]);
             }
         } elseif ($rol->codigo === 'coordinador') {
-            $partes = explode(' ', trim($request->name), 2);
+            $partes = preg_split('/\s+/', trim($request->name));
+            $totalPartes = count($partes);
+            $nombres = $totalPartes > 2 ? ($partes[0] . ' ' . $partes[1]) : $partes[0];
+            $apellidos = $totalPartes > 2 ? implode(' ', array_slice($partes, 2)) : ($partes[1] ?? '');
+
             Coordinador::create([
                 'usuario_id' => $usuario->id,
-                'nombres' => $partes[0] ?? $request->name,
-                'apellidos' => $partes[1] ?? 'Coordinación',
+                'nombres'   => $nombres,
+                'apellidos' => $apellidos,
                 'telefono' => '',
                 'activo' => 1,
             ]);
@@ -208,11 +254,12 @@ class AdminController extends Controller
     public function usuariosUpdate(Request $request, User $usuario)
     {
         $request->validate([
-            'name'     => 'required|string|max:160',
+            'name'     => ['required', 'string', 'max:160', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
             'email'    => 'required|email|max:190|unique:users,email,' . $usuario->id,
             'rol_id'   => 'required|exists:roles,id',
             'motivo'   => 'nullable|string|max:500',
         ], [
+            'name.regex'   => 'El nombre completo solo debe contener letras y espacios, no se permiten números.',
             'email.unique' => 'Este correo electrónico ya se encuentra en uso por otra cuenta institucional.',
         ]);
 

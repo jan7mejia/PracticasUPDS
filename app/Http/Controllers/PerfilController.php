@@ -23,7 +23,9 @@ class PerfilController extends Controller
             // Regla académica: El estudiante NO puede modificar su nombre ni su correo institucional.
             // Solo puede actualizar datos de contacto autorizados (teléfono/celular).
             $request->validate([
-                'telefono' => 'nullable|string|max:30',
+                'telefono' => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            ], [
+                'telefono.regex' => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (celular de 8 dígitos empezando en 6 o 7, o fijo empezando en 4).',
             ]);
 
             if ($user->estudiante) {
@@ -39,7 +41,9 @@ class PerfilController extends Controller
             // Regla académica: El docente tutor NO puede modificar su nombre, correo institucional, rol ni estado.
             // Solo puede actualizar su información personal secundaria autorizada (teléfono de contacto).
             $request->validate([
-                'telefono' => 'nullable|string|max:30',
+                'telefono' => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            ], [
+                'telefono.regex' => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (celular de 8 dígitos empezando en 6 o 7, o fijo empezando en 4).',
             ]);
 
             if ($user->tutor) {
@@ -55,7 +59,9 @@ class PerfilController extends Controller
             // Regla académica: El coordinador NO puede modificar su nombre institucional, correo, rol ni estado.
             // Solo puede actualizar sus datos de contacto secundarios autorizados (teléfono).
             $request->validate([
-                'telefono' => 'nullable|string|max:30',
+                'telefono' => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            ], [
+                'telefono.regex' => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (celular de 8 dígitos empezando en 6 o 7, o fijo empezando en 4).',
             ]);
 
             if ($user->coordinador) {
@@ -72,8 +78,10 @@ class PerfilController extends Controller
         }
 
         $request->validate([
-            'name'  => 'required|string|max:200',
+            'name'  => ['required', 'string', 'max:160', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
             'email' => 'required|email|max:191|unique:users,email,' . $user->id,
+        ], [
+            'name.regex' => 'El nombre completo solo debe contener letras y espacios, no se permiten números.',
         ]);
 
         $user->update([

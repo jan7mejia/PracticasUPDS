@@ -225,20 +225,28 @@
                             <input type="text" name="nombre" class="form-control" required placeholder="Ej. Empresa ABC S.R.L.">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold">NIT</label>
-                            <input type="text" name="nit" class="form-control" placeholder="Ej. 1234567890123">
+                            <label class="form-label small fw-semibold">NIT (Solo números)</label>
+                            <input type="text" name="nit" class="form-control" placeholder="Ej. 1234567890123"
+                                   maxlength="15" pattern="[0-9]{7,15}"
+                                   title="Solo dígitos numéricos"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Rubro o Actividad</label>
-                            <input type="text" name="rubro" class="form-control" placeholder="Ej. Tecnología / Banca / Salud">
+                            <input type="text" name="rubro" class="form-control" placeholder="Ej. Tecnología / Banca / Salud"
+                                   oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\/\,\.\-]/g, '')">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Dirección</label>
                             <input type="text" name="direccion" class="form-control" placeholder="Av. Principal N° 123">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Teléfono de la Empresa</label>
-                            <input type="text" name="telefono" class="form-control" placeholder="77012345">
+                            <label class="form-label small fw-semibold">Teléfono de la Empresa (Solo números)</label>
+                            <input type="text" name="telefono" class="form-control" placeholder="Ej. 4412345 ó 77012345"
+                                   maxlength="15"
+                                   title="Número telefónico válido de Bolivia"
+                                   oninput="this.value = this.value.replace(/[^0-9\+\-\s\(\)]/g, '')">
+                            <small class="text-muted" style="font-size: 0.72rem;">Fijo Cochabamba (4XXXXXX) o Celular Bolivia (6/7XXXXXXX)</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Correo Electrónico Institucional</label>
@@ -249,20 +257,30 @@
                             <h6 class="fw-bold text-primary small text-uppercase">Datos del Responsable de Contacto (Tutor Empresarial)</h6>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Nombres</label>
-                            <input type="text" name="responsable_nombres" class="form-control" placeholder="Ej. Carlos">
+                            <label class="form-label small fw-semibold">Nombres (Solo letras)</label>
+                            <input type="text" name="responsable_nombres" class="form-control" placeholder="Ej. Carlos"
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                                   title="Solo letras y espacios, no se permiten números"
+                                   oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]/g, '')">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Apellidos</label>
-                            <input type="text" name="responsable_apellidos" class="form-control" placeholder="Ej. Méndez">
+                            <label class="form-label small fw-semibold">Apellidos (Solo letras)</label>
+                            <input type="text" name="responsable_apellidos" class="form-control" placeholder="Ej. Méndez"
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                                   title="Solo letras y espacios, no se permiten números"
+                                   oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]/g, '')">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">Cargo</label>
-                            <input type="text" name="responsable_cargo" class="form-control" placeholder="Ej. Gerente de Tecnología">
+                            <input type="text" name="responsable_cargo" class="form-control" placeholder="Ej. Gerente de Tecnología"
+                                   oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\,\/\-]/g, '')">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold">Teléfono Directo</label>
-                            <input type="text" name="responsable_telefono" class="form-control" placeholder="Ej. 77012345">
+                            <label class="form-label small fw-semibold">Teléfono Directo (Solo números)</label>
+                            <input type="text" name="responsable_telefono" class="form-control" placeholder="Ej. 77012345"
+                                   maxlength="15"
+                                   title="Número telefónico válido de Bolivia"
+                                   oninput="this.value = this.value.replace(/[^0-9\+\-\s\(\)]/g, '')">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">Correo del Responsable</label>

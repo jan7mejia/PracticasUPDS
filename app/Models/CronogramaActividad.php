@@ -64,7 +64,7 @@ class CronogramaActividad extends Model
      */
     public function getEstadoEntregaAttribute(): string
     {
-        $ultimoInforme = $this->informes()->orderBy('version', 'desc')->first();
+        $ultimoInforme = $this->ultimo_informe;
         if ($ultimoInforme) {
             if ($ultimoInforme->estado === 'revisado') {
                 return 'aprobado';
@@ -86,6 +86,9 @@ class CronogramaActividad extends Model
 
     public function getUltimoInformeAttribute(): ?InformeAvance
     {
+        if ($this->relationLoaded('informes')) {
+            return $this->informes->sortByDesc('version')->first();
+        }
         return $this->informes()->orderBy('version', 'desc')->first();
     }
 
@@ -97,34 +100,42 @@ class CronogramaActividad extends Model
      */
     public function calcularNota(): ?float
     {
-        if (!$this->rubrica) {
-            return null;
+        // 1. Regla estricta UPDS: Si el plazo de la actividad venció y no se entregó informe: Calificación 0.00 automática
+        if ($this->estado_entrega === 'vencido') {
+            return 0.00;
         }
 
-        $criterios = $this->rubrica->criterios()->with('evaluaciones')->get();
-        if ($criterios->isEmpty()) {
-            return null;
+        // 2. Si la actividad tiene informe evaluado formalmente por el tutor:
+        $ultimoInf = $this->ultimo_informe;
+        if ($ultimoInf && $ultimoInf->calificacion !== null) {
+            return (float)$ultimoInf->calificacion;
         }
 
-        $notaTotal = 0;
-        $evaluados = 0;
-        foreach ($criterios as $criterio) {
-            $eval = $criterio->evaluaciones()->latest()->first();
-            if ($eval) {
-                // Nota ponderada: (puntuacion / 100) * ponderacion
-                $notaTotal += ($eval->puntuacion * ($criterio->ponderacion / 100.0));
-                $evaluados++;
+        // 3. Si tiene rúbrica con criterios evaluados:
+        if ($this->rubrica) {
+            $criterios = $this->rubrica->criterios()->with('evaluaciones')->get();
+            if ($criterios->isNotEmpty()) {
+                $notaTotal = 0;
+                $evaluados = 0;
+                foreach ($criterios as $criterio) {
+                    $eval = $criterio->evaluaciones->sortByDesc('created_at')->first();
+                    if ($eval) {
+                        // Nota ponderada: (puntuacion / 100) * ponderacion
+                        $notaTotal += ($eval->puntuacion * ($criterio->ponderacion / 100.0));
+                        $evaluados++;
+                    }
+                }
+
+                if ($evaluados > 0) {
+                    return round($notaTotal, 2);
+                }
             }
         }
 
-        if ($evaluados > 0) {
-            return round($notaTotal, 2);
-        }
-
-        // Si la fecha límite expiró y el estudiante nunca presentó el informe de la actividad:
-        // Obtiene automáticamente 0.00 por incumplimiento del cronograma institucional
+        // 4. Si la fecha límite expiró sin entrega y no está completada:
         $hoy = now()->toDateString();
-        if ($this->fecha_fin && $this->fecha_fin->format('Y-m-d') < $hoy && !$this->informes()->exists() && $this->estado !== 'completada') {
+        $tieneInformes = $this->relationLoaded('informes') ? $this->informes->isNotEmpty() : $this->informes()->exists();
+        if ($this->fecha_fin && $this->fecha_fin->format('Y-m-d') < $hoy && !$tieneInformes && $this->estado !== 'completada') {
             return 0.00;
         }
 

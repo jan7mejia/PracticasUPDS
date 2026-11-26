@@ -196,10 +196,7 @@ class Practica extends Model
 
     public function getDuracionMesesAttribute()
     {
-        if ($this->fecha_inicio && $this->fecha_fin_prevista) {
-            return max(1, $this->fecha_inicio->diffInMonths($this->fecha_fin_prevista));
-        }
-        return 3;
+        return 3; // Reglamentario UPDS: 3 meses (240 horas / 4 hrs/día = 60 jornadas hábiles)
     }
 }
 

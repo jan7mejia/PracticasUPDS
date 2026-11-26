@@ -97,7 +97,9 @@
                 <tbody>
                     @forelse($usuarios as $u)
                     <tr>
-                        <td class="ps-4 text-muted small">{{ $u->id }}</td>
+                        <td class="ps-4 text-muted small fw-semibold">
+                            {{ $loop->iteration + ($usuarios->currentPage() - 1) * $usuarios->perPage() }}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 <div style="width:36px;height:36px;border-radius:50%;background:var(--upds-primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;flex-shrink:0;">

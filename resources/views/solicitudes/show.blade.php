@@ -191,6 +191,13 @@
                             <span class="badge bg-warning text-dark rounded-pill px-2">Pendiente</span>
                         @endif
                     </div>
+                    @if(auth()->user()->isCoordinador() || auth()->user()->isAdmin())
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100 py-1 rounded-pill" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#modalRequisitosExpediente">
+                                <i class="bi bi-card-checklist me-1"></i>Ver / Validar Requisitos
+                            </button>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="mb-2">
@@ -563,6 +570,110 @@
             </div>
         </div>
     @endforeach
+@endif
+
+<!-- Modal Ver / Validar Requisitos Académicos del Estudiante -->
+@if(auth()->user()->isCoordinador() || auth()->user()->isAdmin())
+<div class="modal fade" id="modalRequisitosExpediente" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-light">
+                <h6 class="modal-title fw-bold text-navy" style="color:var(--upds-navy);">
+                    <i class="bi bi-card-checklist text-primary me-2"></i>Requisitos Académicos - {{ $solicitud->estudiante->nombre_completo }}
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 px-3 small rounded-3 mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Verificación de requisitos reglamentarios para habilitar la práctica profesional (RU: <strong>{{ $solicitud->estudiante->ru }}</strong> &bull; {{ $solicitud->estudiante->carrera->nombre ?? 'UPDS' }} &bull; Semestre {{ $solicitud->estudiante->semestre }}°).
+                </div>
+
+                <div class="table-responsive rounded-3 border mb-3">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="small text-muted">
+                                <th class="ps-3 py-2">Requisito</th>
+                                <th class="py-2">Tipo</th>
+                                <th class="py-2">Estado</th>
+                                <th class="py-2 text-end pe-3">Acción Rápida</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @forelse($solicitud->estudiante->requisitos as $req)
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="fw-semibold text-dark">{{ $req->requisito->nombre ?? 'Requisito' }}</div>
+                                        <small class="text-muted">{{ $req->requisito->descripcion ?? '' }}</small>
+                                    </td>
+                                    <td>
+                                        @if($req->requisito && $req->requisito->obligatorio)
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Obligatorio</span>
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-secondary">Opcional</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($req->estado === 'cumple')
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                <i class="bi bi-check-circle me-1"></i>Cumple
+                                            </span>
+                                        @elseif($req->estado === 'no_cumple')
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                <i class="bi bi-x-circle me-1"></i>No Cumple
+                                            </span>
+                                        @else
+                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                                                <i class="bi bi-clock me-1"></i>Pendiente
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <form action="{{ route('estudiantes.requisitos.verificar', [$solicitud->estudiante_id, $req->id]) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @if($req->estado !== 'cumple')
+                                                <input type="hidden" name="estado" value="cumple">
+                                                <input type="hidden" name="observacion" value="Validado conforme en expediente de solicitud.">
+                                                <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 rounded-pill" title="Marcar como cumplido">
+                                                    <i class="bi bi-check-lg me-1"></i>Aprobar
+                                                </button>
+                                            @else
+                                                <input type="hidden" name="estado" value="pendiente">
+                                                <input type="hidden" name="observacion" value="Revertido a pendiente para re-verificación.">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-pill" title="Revertir a pendiente">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            @endif
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">No hay requisitos registrados para este estudiante.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <form action="{{ route('estudiantes.requisitos.validar-todos', $solicitud->estudiante_id) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+                            <i class="bi bi-check-all me-1"></i>Validar Todos los Requisitos como CUMPLE
+                        </button>
+                    </form>
+                    <a href="{{ route('estudiantes.show', $solicitud->estudiante_id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-person-lines-fill me-1"></i>Ver Ficha Académica Completa
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endif
 @endsection
 

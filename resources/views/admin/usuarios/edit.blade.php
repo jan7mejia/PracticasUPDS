@@ -25,8 +25,14 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Nombre Completo *</label>
                         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                               value="{{ old('name', $usuario->name) }}" required>
+                               value="{{ old('name', $usuario->name) }}" required
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                               title="Solo letras y espacios, no se permiten números"
+                               oninput="this.value = this.value.replace(/[0-9]/g, '')">
                         @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>Solo se admiten caracteres alfabéticos (sin números).
+                        </small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Correo Electrónico *</label>

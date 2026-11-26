@@ -45,17 +45,22 @@ class OrganizacionController extends Controller
             abort(403, 'Acción no autorizada. No tienes permisos para registrar organizaciones.');
         }
         $request->validate([
-            'nombre' => 'required|string|max:180|unique:organizaciones_receptoras,nombre',
-            'nit' => 'nullable|string|max:35|unique:organizaciones_receptoras,nit',
-            'rubro' => 'nullable|string|max:120',
-            'direccion' => 'nullable|string|max:255',
-            'telefono' => 'nullable|string|max:30',
-            'correo' => 'nullable|email|max:190',
-            'responsable_nombres' => 'nullable|string|max:100',
-            'responsable_apellidos' => 'nullable|string|max:120',
-            'responsable_cargo' => 'nullable|string|max:120',
-            'responsable_telefono' => 'nullable|string|max:30',
-            'responsable_correo' => 'nullable|email|max:190',
+            'nombre'                => 'required|string|max:180|unique:organizaciones_receptoras,nombre',
+            'nit'                   => 'nullable|string|max:35|unique:organizaciones_receptoras,nit',
+            'rubro'                 => 'nullable|string|max:120',
+            'direccion'             => 'nullable|string|max:255',
+            'telefono'              => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'correo'                => 'nullable|email|max:190',
+            'responsable_nombres'   => ['nullable', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'responsable_apellidos' => ['nullable', 'string', 'max:120', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'responsable_cargo'     => 'nullable|string|max:120',
+            'responsable_telefono'  => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'responsable_correo'    => 'nullable|email|max:190',
+        ], [
+            'telefono.regex'             => 'El teléfono de la organización debe ser un número válido de Bolivia / Cochabamba (ej: 4412345 o celular 7XXXXXXX).',
+            'responsable_nombres.regex'   => 'Los nombres del responsable solo deben contener letras y espacios, sin números.',
+            'responsable_apellidos.regex' => 'Los apellidos del responsable solo deben contener letras y espacios, sin números.',
+            'responsable_telefono.regex'  => 'El teléfono del responsable debe ser un número válido de Bolivia / Cochabamba (ej: 7XXXXXXX o fijo 4XXXXXX).',
         ]);
 
         $org = OrganizacionReceptora::create($request->only([
@@ -93,13 +98,15 @@ class OrganizacionController extends Controller
             abort(403, 'Acción no autorizada. No tienes permisos para modificar organizaciones.');
         }
         $request->validate([
-            'nombre' => 'required|string|max:180|unique:organizaciones_receptoras,nombre,' . $organizacione->id,
-            'nit' => 'nullable|string|max:35|unique:organizaciones_receptoras,nit,' . $organizacione->id,
-            'rubro' => 'nullable|string|max:120',
+            'nombre'    => 'required|string|max:180|unique:organizaciones_receptoras,nombre,' . $organizacione->id,
+            'nit'       => 'nullable|string|max:35|unique:organizaciones_receptoras,nit,' . $organizacione->id,
+            'rubro'     => 'nullable|string|max:120',
             'direccion' => 'nullable|string|max:255',
-            'telefono' => 'nullable|string|max:30',
-            'correo' => 'nullable|email|max:190',
-            'estado' => 'required|in:activa,inactiva',
+            'telefono'  => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'correo'    => 'nullable|email|max:190',
+            'estado'    => 'required|in:activa,inactiva',
+        ], [
+            'telefono.regex' => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (ej: 4412345 o celular 7XXXXXXX).',
         ]);
 
         $organizacione->update($request->only([
@@ -117,11 +124,15 @@ class OrganizacionController extends Controller
         }
 
         $request->validate([
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'nullable|string|max:120',
-            'cargo' => 'nullable|string|max:120',
-            'telefono' => 'nullable|string|max:30',
-            'correo' => 'nullable|email|max:190',
+            'nombres'   => ['required', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'apellidos' => ['nullable', 'string', 'max:120', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'cargo'     => 'nullable|string|max:120',
+            'telefono'  => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'correo'    => 'nullable|email|max:190',
+        ], [
+            'nombres.regex'   => 'Los nombres solo deben contener letras y espacios, no se permiten números.',
+            'apellidos.regex' => 'Los apellidos solo deben contener letras y espacios, no se permiten números.',
+            'telefono.regex'  => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (ej: 7XXXXXXX o fijo 4XXXXXX).',
         ]);
 
         ResponsableOrganizacion::create([
@@ -144,12 +155,16 @@ class OrganizacionController extends Controller
         }
 
         $request->validate([
-            'nombres' => 'required|string|max:100',
-            'apellidos' => 'nullable|string|max:120',
-            'cargo' => 'nullable|string|max:120',
-            'telefono' => 'nullable|string|max:30',
-            'correo' => 'nullable|email|max:190',
-            'activo' => 'required|boolean',
+            'nombres'   => ['required', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'apellidos' => ['nullable', 'string', 'max:120', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+$/u'],
+            'cargo'     => 'nullable|string|max:120',
+            'telefono'  => ['nullable', 'string', 'max:25', 'regex:/^(\+?591[\s\-]?)?(\(?4\)?[\s\-]?)?[467]\d{6,7}$/'],
+            'correo'    => 'nullable|email|max:190',
+            'activo'    => 'required|boolean',
+        ], [
+            'nombres.regex'   => 'Los nombres solo deben contener letras y espacios, no se permiten números.',
+            'apellidos.regex' => 'Los apellidos solo deben contener letras y espacios, no se permiten números.',
+            'telefono.regex'  => 'El teléfono debe ser un número válido de Bolivia / Cochabamba (ej: 7XXXXXXX o fijo 4XXXXXX).',
         ]);
 
         $responsable->update([

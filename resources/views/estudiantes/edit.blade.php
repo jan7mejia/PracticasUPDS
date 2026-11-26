@@ -49,23 +49,29 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Nombres *</label>
-                        <input type="text" name="nombres" class="form-control" value="{{ old('nombres', $estudiante->nombres) }}" required>
+                        <input type="text" name="nombres" class="form-control" value="{{ old('nombres', $estudiante->nombres) }}" required
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+" title="Solo letras y espacios, sin números"
+                               oninput="this.value = this.value.replace(/[0-9]/g, '')">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Apellidos *</label>
-                        <input type="text" name="apellidos" class="form-control" value="{{ old('apellidos', $estudiante->apellidos) }}" required>
+                        <input type="text" name="apellidos" class="form-control" value="{{ old('apellidos', $estudiante->apellidos) }}" required
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+" title="Solo letras y espacios, sin números"
+                               oninput="this.value = this.value.replace(/[0-9]/g, '')">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-semibold">RU (Registro Universitario) *</label>
-                        <input type="text" name="ru" class="form-control" value="{{ old('ru', $estudiante->ru) }}" required>
+                        <input type="text" name="ru" class="form-control" value="{{ old('ru', $estudiante->ru) }}" required
+                               maxlength="10" pattern="[0-9]{6,10}" title="Solo dígitos numéricos"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-semibold">Cédula de Identidad (CI)</label>
-                        <input type="text" name="ci" class="form-control" value="{{ old('ci', $estudiante->ci) }}">
+                        <input type="text" name="ci" class="form-control" value="{{ old('ci', $estudiante->ci) }}" placeholder="Ej: 8945123 CB" maxlength="20">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small fw-semibold">Teléfono</label>
-                        <input type="text" name="telefono" class="form-control" value="{{ old('telefono', $estudiante->telefono) }}">
+                        <label class="form-label small fw-semibold">Teléfono / Celular (Cochabamba)</label>
+                        <input type="text" name="telefono" class="form-control" value="{{ old('telefono', $estudiante->telefono) }}" placeholder="Ej: 71234567 o 4412345" maxlength="20">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Carrera *</label>

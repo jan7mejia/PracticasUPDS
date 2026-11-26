@@ -219,8 +219,17 @@ class SolicitudController extends Controller
         }
 
         $estudiante = $user->estudiante;
-        if (!$estudiante) {
-            return redirect()->route('solicitudes.index')->withErrors(['error' => 'No tienes un perfil de estudiante asociado.']);
+        if (!$estudiante || !$estudiante->carrera_id) {
+            return redirect()->route('solicitudes.index')->withErrors([
+                'bloqueo' => 'Tu cuenta aún no tiene un expediente académico completo (carrera no asignada). Coordinación Académica o el Administrador deben completar tu ficha antes de poder iniciar trámites de práctica.'
+            ]);
+        }
+
+        // Regla Académica UPDS: Nivel mínimo 7mo semestre vencido (cursar 7mo/8vo semestre en adelante)
+        if ($estudiante->semestre && $estudiante->semestre < 7) {
+            return redirect()->route('solicitudes.index')->withErrors([
+                'bloqueo' => "Reglamento UPDS: Para iniciar la Práctica Profesional debes tener el 7mo Semestre vencido o estar cursando 8vo semestre en adelante (Semestre actual registrado: {$estudiante->semestre}°)."
+            ]);
         }
 
         // Regla 1: Máximo 2 prácticas en toda la carrera
@@ -274,8 +283,13 @@ class SolicitudController extends Controller
 
         $estudiante = $user->estudiante;
 
-        if (!$estudiante) {
-            return back()->withErrors(['error' => 'No tienes un perfil de estudiante asociado.']);
+        if (!$estudiante || !$estudiante->carrera_id) {
+            return back()->withErrors(['error' => 'Tu cuenta aún no tiene un expediente académico completo (carrera no asignada). Coordinación Académica o el Administrador deben completar tu ficha antes de poder iniciar trámites de práctica.']);
+        }
+
+        // Regla Académica UPDS: Nivel mínimo 7mo semestre vencido (cursar 7mo/8vo semestre en adelante)
+        if ($estudiante->semestre && $estudiante->semestre < 7) {
+            return back()->withErrors(['error' => "Reglamento UPDS: Para iniciar la Práctica Profesional debes tener el 7mo Semestre vencido o estar cursando 8vo semestre en adelante (Semestre actual registrado: {$estudiante->semestre}°)."]);
         }
 
         // Control de 2 prácticas y simultaneidad

@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
 
     // 2. Gestión de Estudiantes
     Route::post('/estudiantes/{estudiante}/requisitos/{requisito}', [EstudianteController::class, 'verificarRequisito'])->name('estudiantes.requisitos.verificar');
+    Route::post('/estudiantes/{estudiante}/requisitos-validar-todos', [EstudianteController::class, 'validarTodosRequisitos'])->name('estudiantes.requisitos.validar-todos');
     Route::resource('estudiantes', EstudianteController::class);
 
     // 3. Organizaciones Receptoras

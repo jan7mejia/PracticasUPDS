@@ -83,11 +83,11 @@
         <div class="col-6 col-md">
             <div class="kpi-card d-flex align-items-center gap-3">
                 <div class="kpi-icon" style="background-color: #fee2e2; color: #dc2626;">
-                    <i class="bi bi-file-earmark-excel"></i>
+                    <i class="bi bi-file-earmark-exclamation"></i>
                 </div>
                 <div>
                     <div class="kpi-number">{{ $kpi['documentos_pendientes'] }}</div>
-                    <div class="kpi-label">Docs por revisar</div>
+                    <div class="kpi-label">Docs. Observados</div>
                 </div>
             </div>
         </div>
@@ -98,15 +98,22 @@
         <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size: 0.8rem; letter-spacing: 0.5px;">Acciones rápidas</h6>
         <div class="row g-3">
             <div class="col-6 col-md-3">
-                <a href="{{ route('solicitudes.create') }}" class="action-card">
-                    <i class="bi bi-file-earmark-plus action-icon"></i>
-                    <span class="fw-semibold small">Nueva solicitud</span>
-                </a>
+                @if(isset($practicasConcluidas) && $practicasConcluidas->count() >= 2)
+                    <div class="action-card text-muted opacity-75" title="Has completado las 2 prácticas profesionales obligatorias">
+                        <i class="bi bi-check-circle-fill action-icon text-success"></i>
+                        <span class="fw-semibold small">Prácticas Completadas</span>
+                    </div>
+                @else
+                    <a href="{{ route('solicitudes.create') }}" class="action-card">
+                        <i class="bi bi-file-earmark-plus action-icon"></i>
+                        <span class="fw-semibold small">Nueva solicitud</span>
+                    </a>
+                @endif
             </div>
             <div class="col-6 col-md-3">
-                <a href="{{ route('solicitudes.index', ['tab' => 'documentos']) }}" class="action-card">
-                    <i class="bi bi-cloud-arrow-up action-icon"></i>
-                    <span class="fw-semibold small">Adjuntar documento</span>
+                <a href="{{ route('solicitudes.index') }}" class="action-card">
+                    <i class="bi bi-folder2-open action-icon text-primary"></i>
+                    <span class="fw-semibold small">Mis Solicitudes / Cartas</span>
                 </a>
             </div>
             <div class="col-6 col-md-3">
@@ -116,29 +123,17 @@
                         <span class="fw-semibold small">Registrar horas</span>
                     </a>
                 @else
-                    <div class="action-card text-muted opacity-75" title="Requiere práctica profesional activa">
+                    <div class="action-card text-muted opacity-75" title="Requiere práctica profesional activa en curso">
                         <i class="bi bi-stopwatch action-icon text-muted"></i>
                         <span class="fw-semibold small">Registrar horas</span>
                     </div>
                 @endif
             </div>
             <div class="col-6 col-md-3">
-                @if($practicaActiva)
-                    <a href="{{ route('seguimiento.show', $practicaActiva->id) }}" class="action-card">
-                        <i class="bi bi-graph-up-arrow action-icon"></i>
-                        <span class="fw-semibold small">Consultar seguimiento</span>
-                    </a>
-                @elseif(isset($practicasConcluidas) && $practicasConcluidas->isNotEmpty())
-                    <a href="{{ route('seguimiento.show', $practicasConcluidas->last()->id) }}" class="action-card">
-                        <i class="bi bi-graph-up-arrow action-icon text-success"></i>
-                        <span class="fw-semibold small">Consultar seguimiento</span>
-                    </a>
-                @else
-                    <a href="{{ route('seguimiento.index') }}" class="action-card">
-                        <i class="bi bi-graph-up-arrow action-icon"></i>
-                        <span class="fw-semibold small">Consultar seguimiento</span>
-                    </a>
-                @endif
+                <a href="{{ route('seguimiento.index') }}" class="action-card">
+                    <i class="bi bi-graph-up-arrow action-icon text-success"></i>
+                    <span class="fw-semibold small">Mis Prácticas (Seguimiento)</span>
+                </a>
             </div>
         </div>
     </div>

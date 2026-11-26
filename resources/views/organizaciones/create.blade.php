@@ -30,9 +30,10 @@
                             @error('nombre') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold small">NIT / RUC</label>
+                            <label class="form-label fw-semibold small">NIT (Solo números)</label>
                             <input type="text" name="nit" class="form-control @error('nit') is-invalid @enderror"
-                                   value="{{ old('nit') }}" placeholder="Ej: 1020304050">
+                                   value="{{ old('nit') }}" placeholder="Ej: 1020304050" maxlength="15"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             @error('nit') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
@@ -41,7 +42,8 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Rubro / Sector *</label>
                             <input type="text" name="rubro" class="form-control @error('rubro') is-invalid @enderror"
-                                   value="{{ old('rubro') }}" placeholder="Ej: Banca y Finanzas, Tecnología, Salud">
+                                   value="{{ old('rubro') }}" placeholder="Ej: Banca y Finanzas, Tecnología, Salud"
+                                   oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\/\,\.\-]/g, '')">
                             @error('rubro') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
@@ -54,9 +56,10 @@
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold small">Teléfono Institucional</label>
+                            <label class="form-label fw-semibold small">Teléfono Institucional (Solo números)</label>
                             <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
-                                   value="{{ old('telefono') }}" placeholder="Ej: 4-4123456">
+                                   value="{{ old('telefono') }}" placeholder="Ej: 4412345 ó 77012345" maxlength="15"
+                                   oninput="this.value = this.value.replace(/[^0-9\+\-\s\(\)]/g, '')">
                             @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
@@ -71,22 +74,28 @@
                         <h6 class="fw-bold text-navy mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Responsable / Tutor Empresarial</h6>
                         <div class="row g-3 mb-2">
                             <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Nombres</label>
-                                <input type="text" name="responsable_nombres" class="form-control" value="{{ old('responsable_nombres') }}" placeholder="Ej: Lic. Carlos">
+                                <label class="form-label small fw-semibold">Nombres (Solo letras)</label>
+                                <input type="text" name="responsable_nombres" class="form-control" value="{{ old('responsable_nombres') }}" placeholder="Ej: Carlos"
+                                       pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                                       oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]/g, '')">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Apellidos</label>
-                                <input type="text" name="responsable_apellidos" class="form-control" value="{{ old('responsable_apellidos') }}" placeholder="Ej: Méndez">
+                                <label class="form-label small fw-semibold">Apellidos (Solo letras)</label>
+                                <input type="text" name="responsable_apellidos" class="form-control" value="{{ old('responsable_apellidos') }}" placeholder="Ej: Méndez"
+                                       pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                                       oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]/g, '')">
                             </div>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Cargo</label>
-                                <input type="text" name="responsable_cargo" class="form-control" value="{{ old('responsable_cargo') }}" placeholder="Ej: Jefe de RRHH">
+                                <input type="text" name="responsable_cargo" class="form-control" value="{{ old('responsable_cargo') }}" placeholder="Ej: Jefe de RRHH"
+                                       oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\,\/\-]/g, '')">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small fw-semibold">Teléfono Directo</label>
-                                <input type="text" name="responsable_telefono" class="form-control" value="{{ old('responsable_telefono') }}" placeholder="Ej: 77012345">
+                                <label class="form-label small fw-semibold">Teléfono Directo (Solo números)</label>
+                                <input type="text" name="responsable_telefono" class="form-control" value="{{ old('responsable_telefono') }}" placeholder="Ej: 77012345" maxlength="15"
+                                       oninput="this.value = this.value.replace(/[^0-9\+\-\s\(\)]/g, '')">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Correo de Contacto</label>

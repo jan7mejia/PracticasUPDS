@@ -34,9 +34,12 @@ class DashboardController extends Controller
             $totalSolicitudes = $solicitudes->count();
             $solicitudesPendientes = $solicitudes->whereIn('estado', ['presentada', 'en_revision', 'pendiente'])->count();
             
-            $documentosPendientesObservados = $estudiante ? DocumentoSolicitud::whereHas('solicitud', function ($q) use ($estudiante) {
-                $q->where('estudiante_id', $estudiante->id);
-            })->whereIn('estado', ['pendiente', 'observado', 'rechazado'])->count() : 0;
+            $documentosPendientesObservados = $estudiante ? (
+                DocumentoSolicitud::whereHas('solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+                    ->whereIn('estado', ['observado', 'rechazado'])->count()
+                + InformeAvance::whereHas('practica.solicitud', fn($q) => $q->where('estudiante_id', $estudiante->id))
+                    ->where('estado', 'observado')->count()
+            ) : 0;
 
             // Cómputo total de horas validadas acumuladas de todas sus prácticas
             $horasValidadas = $estudiante ? RegistroHora::whereHas('practica.solicitud', function ($q) use ($estudiante) {

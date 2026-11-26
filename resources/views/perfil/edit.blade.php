@@ -39,11 +39,11 @@
                             <div class="form-text text-muted">Cuenta oficial UPDS.</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto *</label>
+                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto (Cochabamba) *</label>
                             <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
-                                   value="{{ old('telefono', $user->estudiante?->telefono) }}" placeholder="Ej: 77912345">
+                                   value="{{ old('telefono', $user->estudiante?->telefono) }}" placeholder="Ej: 77912345 o 4412345" maxlength="20">
                             @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            <div class="form-text text-muted">Dato de contacto autorizado para notificaciones de seguimiento.</div>
+                            <div class="form-text text-muted">Dato de contacto autorizado para notificaciones de seguimiento (Bolivia/Cochabamba).</div>
                         </div>
                         <div class="mb-4 p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
                             <div class="row g-2 text-muted small">
@@ -85,9 +85,9 @@
                             <input type="text" class="form-control bg-light" value="{{ $user->tutor?->especialidad ?? 'Docente Tutor de Prácticas' }}" readonly disabled>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto *</label>
+                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto (Cochabamba) *</label>
                             <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
-                                   value="{{ old('telefono', $user->tutor?->telefono) }}" placeholder="Ej: 70788990">
+                                   value="{{ old('telefono', $user->tutor?->telefono) }}" placeholder="Ej: 70788990 o 4412345" maxlength="20">
                             @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             <div class="form-text text-muted">Información de contacto para estudiantes y coordinación.</div>
                         </div>
@@ -131,9 +131,9 @@
                             <input type="text" class="form-control bg-light" value="Coordinación Académica de Prácticas Profesionales" readonly disabled>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto *</label>
+                            <label class="form-label fw-semibold small text-muted">Teléfono / Celular de Contacto (Cochabamba) *</label>
                             <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
-                                   value="{{ old('telefono', $user->coordinador?->telefono) }}" placeholder="Ej: 70711223">
+                                   value="{{ old('telefono', $user->coordinador?->telefono) }}" placeholder="Ej: 70711223 o 4412345" maxlength="20">
                             @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             <div class="form-text text-muted">Número de contacto oficial para comunicación académica.</div>
                         </div>

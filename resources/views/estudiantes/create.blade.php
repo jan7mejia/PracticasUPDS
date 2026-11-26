@@ -26,29 +26,43 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nombres *</label>
                             <input type="text" name="nombres" class="form-control @error('nombres') is-invalid @enderror"
-                                   value="{{ old('nombres') }}" placeholder="Ej: Ana María" required>
+                                   value="{{ old('nombres') }}" placeholder="Ej: Ana María" required
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+"
+                                   title="Solo letras y espacios, no se permiten números"
+                                   oninput="this.value = this.value.replace(/[0-9]/g, '')">
                             @error('nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Apellidos *</label>
                             <input type="text" name="apellidos" class="form-control @error('apellidos') is-invalid @enderror"
-                                   value="{{ old('apellidos') }}" placeholder="Ej: Gómez Rojas" required>
+                                   value="{{ old('apellidos') }}" placeholder="Ej: Gómez Rojas" required
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'\-]+]+"
+                                   title="Solo letras y espacios, no se permiten números"
+                                   oninput="this.value = this.value.replace(/[0-9]/g, '')">
                             @error('apellidos') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold small">Registro Universitario (RU) *</label>
                             <input type="text" name="ru" class="form-control @error('ru') is-invalid @enderror"
-                                   value="{{ old('ru') }}" placeholder="Ej: 3200480" required>
+                                   value="{{ old('ru') }}" placeholder="Ej: 3200480" required maxlength="10"
+                                   pattern="[0-9]{6,10}" title="Solo dígitos numéricos"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             @error('ru') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold small">Cédula de Identidad (CI)</label>
                             <input type="text" name="ci" class="form-control @error('ci') is-invalid @enderror"
-                                   value="{{ old('ci') }}" placeholder="Ej: 8945123 CB">
+                                   value="{{ old('ci') }}" placeholder="Ej: 8945123 CB" maxlength="20">
                             @error('ci') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Teléfono / Celular (Cochabamba)</label>
+                            <input type="text" name="telefono" class="form-control @error('telefono') is-invalid @enderror"
+                                   value="{{ old('telefono') }}" placeholder="Ej: 71234567 o 4412345" maxlength="20">
+                            @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
 

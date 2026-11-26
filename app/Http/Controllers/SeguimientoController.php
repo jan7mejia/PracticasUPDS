@@ -118,6 +118,7 @@ class SeguimientoController extends Controller
             'solicitud.estudiante.carrera',
             'solicitud.organizacion.responsables',
             'tutor',
+            'actividades.informes',
             'actividades.rubrica.criterios.evaluaciones',
             'registrosHoras' => fn($q) => $q->with(['revisor', 'actividad'])->orderBy('fecha', 'desc'),
             'informes' => fn($q) => $q->with(['actividad', 'evaluacionesCriterio'])->orderBy('periodo_inicio', 'desc'),
@@ -234,7 +235,7 @@ class SeguimientoController extends Controller
             'actividad_id' => 'nullable|exists:cronograma_actividades,id',
         ], [
             'fecha.required' => 'La fecha de la jornada es obligatoria.',
-            'fecha.before_or_equal' => 'La fecha no está dentro del periodo permitido.',
+            'fecha.before_or_equal' => 'No se permite registrar horas en fechas futuras. Solo se permite registrar hasta la fecha actual de hoy.',
             'horas.required' => 'Ingresa la cantidad de horas realizadas.',
             'horas.min' => 'El tiempo mínimo por jornada debe ser de al menos 30 minutos (0.5 hrs).',
             'horas.max' => "El máximo diario es de {$maxDiarias} horas.",
@@ -242,12 +243,22 @@ class SeguimientoController extends Controller
             'descripcion.min' => 'La descripción debe tener al menos 5 caracteres.',
         ]);
 
-        // 3. Validar que la fecha esté dentro del periodo de la práctica (si tiene fecha de inicio)
-        if ($practica->fecha_inicio && $request->fecha < $practica->fecha_inicio->format('Y-m-d')) {
-            return back()->withErrors(['fecha' => "La fecha no está dentro del periodo permitido: no puede ser anterior al inicio de la práctica ({$practica->fecha_inicio->format('d/m/Y')})."])->withInput();
+        // 3. Validar que la fecha esté estrictamente dentro del periodo reglamentario de la práctica (3 meses)
+        if ($practica->fecha_inicio) {
+            $fReg = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            $fIniPrac = $practica->fecha_inicio->copy()->startOfDay();
+            if ($fReg->lt($fIniPrac)) {
+                return back()->withErrors(['fecha' => "La fecha del registro ({$fReg->format('d/m/Y')}) no está dentro del período permitido: no puede ser anterior al inicio oficial de la práctica ({$fIniPrac->format('d/m/Y')})."])->withInput();
+            }
         }
-        if ($practica->fecha_fin_real && $request->fecha > $practica->fecha_fin_real->format('Y-m-d')) {
-            return back()->withErrors(['fecha' => "La fecha no está dentro del periodo permitido: la práctica concluyó formalmente el {$practica->fecha_fin_real->format('d/m/Y')}."])->withInput();
+
+        $limiteFin = $practica->fecha_fin_real ?? $practica->fecha_fin_prevista;
+        if ($limiteFin) {
+            $fReg = \Carbon\Carbon::parse($request->fecha)->startOfDay();
+            $fFinPrac = $limiteFin->copy()->startOfDay();
+            if ($fReg->gt($fFinPrac)) {
+                return back()->withErrors(['fecha' => "La fecha del registro ({$fReg->format('d/m/Y')}) supera la fecha límite de finalización de la práctica ({$fFinPrac->format('d/m/Y')})."])->withInput();
+            }
         }
 
         // 4. Regla UPDS: Un único registro de jornada por día (asistencia a turno continuo)
@@ -364,8 +375,8 @@ class SeguimientoController extends Controller
     public function storeActividad(Request $request, Practica $practica)
     {
         $user = Auth::user();
-        $esCoord = $user->isCoordinador();
-        $esTutorAsignado = $user->isTutor() && ($practica->tutor_id === $user->tutor?->id);
+        $esCoord = $user->isCoordinador() || $user->isAdmin();
+        $esTutorAsignado = $user->isTutor() && ($practica->tutor_id === $user->tutor?->id || $practica->tutor?->usuario_id === $user->id);
 
         if (!$esCoord && !$esTutorAsignado) {
             abort(403, 'Acción no autorizada. La planificación de actividades corresponde al docente tutor asignado o a la Coordinación Académica.');
@@ -376,20 +387,39 @@ class SeguimientoController extends Controller
             'objetivo' => 'nullable|string|max:300',
             'descripcion' => 'nullable|string|max:1000',
             'entregable_esperado' => 'nullable|string|max:255',
-            'fecha_inicio' => 'nullable|date',
-            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-            'horas_planificadas' => 'nullable|numeric|min:1|max:240',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+            'horas_planificadas' => 'nullable|numeric|min:0|max:240',
         ];
 
-        if ($practica->fecha_inicio && $practica->fecha_fin_prevista) {
-            $rules['fecha_inicio'] .= '|after_or_equal:' . $practica->fecha_inicio->format('Y-m-d');
-            $rules['fecha_fin'] .= '|before_or_equal:' . $practica->fecha_fin_prevista->format('Y-m-d');
+        $request->validate($rules, [
+            'titulo.required' => 'El título de la actividad es obligatorio.',
+            'fecha_inicio.required' => 'La fecha de inicio de la actividad es obligatoria.',
+            'fecha_fin.required' => 'La fecha estimada de fin es obligatoria.',
+            'fecha_fin.after_or_equal' => 'La fecha estimada de fin debe ser igual o posterior a la fecha de inicio.',
+        ]);
+
+        // Validación estricta de límites de la práctica (3 meses reglamentarios UPDS)
+        if ($request->filled('fecha_inicio') && $practica->fecha_inicio) {
+            $fIniReq = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
+            $fIniPrac = $practica->fecha_inicio->copy()->startOfDay();
+            if ($fIniReq->lt($fIniPrac)) {
+                return back()->withErrors([
+                    'fecha_inicio' => "La fecha de inicio de la actividad ({$fIniReq->format('d/m/Y')}) no puede ser anterior al inicio oficial de la práctica ({$fIniPrac->format('d/m/Y')})."
+                ])->withInput();
+            }
         }
 
-        $request->validate($rules, [
-            'fecha_inicio.after_or_equal' => 'La fecha de inicio de la actividad no puede ser anterior al inicio de la práctica (' . ($practica->fecha_inicio?->format('d/m/Y') ?? '') . ').',
-            'fecha_fin.before_or_equal' => 'La fecha final de la actividad no puede superar el límite del periodo de 3 meses (' . ($practica->fecha_fin_prevista?->format('d/m/Y') ?? '') . ').',
-        ]);
+        $limiteFin = $practica->fecha_fin_prevista ?? ($practica->fecha_inicio ? $practica->fecha_inicio->copy()->addMonths(3) : null);
+        if ($request->filled('fecha_fin') && $limiteFin) {
+            $fFinReq = \Carbon\Carbon::parse($request->fecha_fin)->startOfDay();
+            $fFinPrac = $limiteFin->copy()->startOfDay();
+            if ($fFinReq->gt($fFinPrac)) {
+                return back()->withErrors([
+                    'fecha_fin' => "La fecha de finalización ({$fFinReq->format('d/m/Y')}) no puede superar el último día de la práctica ({$fFinPrac->format('d/m/Y')}, límite de 3 meses reglamentarios)."
+                ])->withInput();
+            }
+        }
 
         CronogramaActividad::create([
             'practica_id' => $practica->id,
@@ -411,11 +441,11 @@ class SeguimientoController extends Controller
     {
         $user = Auth::user();
         $practica = $actividad->practica;
-        $esCoord = $user->isCoordinador();
-        $esTutorAsignado = $user->isTutor() && ($practica->tutor_id === $user->tutor?->id);
+        $esCoord = $user->isCoordinador() || $user->isAdmin();
+        $esTutorAsignado = $user->isTutor() && ($practica->tutor_id === $user->tutor?->id || $practica->tutor?->usuario_id === $user->id);
 
         if (!$esCoord && !$esTutorAsignado) {
-            abort(403, 'Acción no autorizada.');
+            abort(403, 'Acción no autorizada. La modificación de actividades corresponde al docente tutor asignado o a la Coordinación Académica.');
         }
 
         $rules = [
@@ -423,18 +453,40 @@ class SeguimientoController extends Controller
             'objetivo' => 'nullable|string|max:300',
             'descripcion' => 'nullable|string|max:1000',
             'entregable_esperado' => 'nullable|string|max:255',
-            'fecha_inicio' => 'nullable|date',
-            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-            'horas_planificadas' => 'nullable|numeric|min:1|max:240',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+            'horas_planificadas' => 'nullable|numeric|min:0|max:240',
             'observacion' => 'nullable|string|max:1000',
         ];
 
-        if ($practica->fecha_inicio && $practica->fecha_fin_prevista) {
-            $rules['fecha_inicio'] .= '|after_or_equal:' . $practica->fecha_inicio->format('Y-m-d');
-            $rules['fecha_fin'] .= '|before_or_equal:' . $practica->fecha_fin_prevista->format('Y-m-d');
+        $request->validate($rules, [
+            'titulo.required' => 'El título de la actividad es obligatorio.',
+            'fecha_inicio.required' => 'La fecha de inicio de la actividad es obligatoria.',
+            'fecha_fin.required' => 'La fecha estimada de fin es obligatoria.',
+            'fecha_fin.after_or_equal' => 'La fecha estimada de fin debe ser igual o posterior a la fecha de inicio.',
+        ]);
+
+        // Validación estricta de límites de la práctica (3 meses reglamentarios UPDS)
+        if ($request->filled('fecha_inicio') && $practica->fecha_inicio) {
+            $fIniReq = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
+            $fIniPrac = $practica->fecha_inicio->copy()->startOfDay();
+            if ($fIniReq->lt($fIniPrac)) {
+                return back()->withErrors([
+                    'fecha_inicio' => "La fecha de inicio de la actividad ({$fIniReq->format('d/m/Y')}) no puede ser anterior al inicio oficial de la práctica ({$fIniPrac->format('d/m/Y')})."
+                ])->withInput();
+            }
         }
 
-        $request->validate($rules);
+        $limiteFin = $practica->fecha_fin_prevista ?? ($practica->fecha_inicio ? $practica->fecha_inicio->copy()->addMonths(3) : null);
+        if ($request->filled('fecha_fin') && $limiteFin) {
+            $fFinReq = \Carbon\Carbon::parse($request->fecha_fin)->startOfDay();
+            $fFinPrac = $limiteFin->copy()->startOfDay();
+            if ($fFinReq->gt($fFinPrac)) {
+                return back()->withErrors([
+                    'fecha_fin' => "La fecha de finalización ({$fFinReq->format('d/m/Y')}) no puede superar el último día de la práctica ({$fFinPrac->format('d/m/Y')}, límite de 3 meses reglamentarios)."
+                ])->withInput();
+            }
+        }
 
         // El estado NO se actualiza manualmente; es automático según entregas de informe y rúbricas
         $actividad->update([
@@ -685,6 +737,14 @@ class SeguimientoController extends Controller
 
         if (!$user->isTutor() || ($practica->tutor_id !== $user->tutor?->id)) {
             abort(403, 'Acción no autorizada. Solo el docente tutor asignado puede evaluar rúbricas.');
+        }
+
+        // Regla estricta UPDS: Cada actividad solo admite una única revisión evaluativa por el docente tutor
+        $yaEvaluada = ($actividad->estado === 'completada') || ($actividad->rubrica && $actividad->rubrica->criterios()->whereHas('evaluaciones')->exists());
+        if ($yaEvaluada) {
+            return back()->withErrors([
+                'evaluacion' => "La actividad '{$actividad->titulo}' ya fue calificada anteriormente. Por reglamento institucional, cada actividad solo admite una única evaluación."
+            ]);
         }
 
         $request->validate([
@@ -980,14 +1040,13 @@ class SeguimientoController extends Controller
         $request->validate([
             'actividad_id' => $tieneActividades ? 'required|exists:cronograma_actividades,id' : 'nullable|exists:cronograma_actividades,id',
             'titulo' => 'required|string|min:3|max:200',
-            'periodo_inicio' => 'required|date',
-            'periodo_fin' => 'required|date|after_or_equal:periodo_inicio',
+            'periodo_inicio' => 'nullable|date',
+            'periodo_fin' => 'nullable|date',
             'resumen' => 'required|string|min:10|max:2000',
             'archivo' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ], [
-            'actividad_id.required' => 'Es obligatorio vincular el informe a una actividad planificada del cronograma.',
+            'actividad_id.required' => 'Es obligatorio seleccionar la actividad planificada a la que corresponde este informe.',
             'titulo.required' => 'Ingresa el título del informe de avance.',
-            'periodo_fin.after_or_equal' => 'La fecha fin no puede ser anterior a la fecha de inicio del periodo reportado.',
             'resumen.required' => 'Describe el resumen de actividades del periodo reportado.',
             'resumen.min' => 'El resumen debe contener al menos 10 caracteres.',
             'archivo.required' => 'Selecciona un documento para el informe.',
@@ -1005,6 +1064,10 @@ class SeguimientoController extends Controller
                 return back()->withErrors(['actividad_id' => 'La actividad seleccionada no pertenece a esta práctica.'])->withInput();
             }
 
+            // Sincronización automática de fechas desde la actividad planificada
+            $pIni = $act->fecha_inicio ? $act->fecha_inicio->copy()->startOfDay() : ($request->filled('periodo_inicio') ? \Carbon\Carbon::parse($request->periodo_inicio)->startOfDay() : now()->startOfDay());
+            $pFin = $act->fecha_fin ? $act->fecha_fin->copy()->startOfDay() : ($request->filled('periodo_fin') ? \Carbon\Carbon::parse($request->periodo_fin)->startOfDay() : now()->startOfDay());
+
             $ultimo = InformeAvance::where('practica_id', $practica->id)
                 ->where('actividad_id', $actividadId)
                 ->orderBy('version', 'desc')
@@ -1013,12 +1076,11 @@ class SeguimientoController extends Controller
             // Control estricto de fechas de entrega según Cronograma
             $hoy = now()->toDateString();
             if ($act->fecha_fin && $hoy > $act->fecha_fin->format('Y-m-d')) {
-                // Si la fecha límite ya venció y NO es una corrección autorizada (informe observado previo)
-                if (!$ultimo || $ultimo->estado !== 'observado') {
-                    return back()->withErrors([
-                        'actividad_id' => "El plazo de entrega para la actividad '{$act->titulo}' venció el {$act->fecha_fin->format('d/m/Y')}. No se admiten entregas extemporáneas fuera del cronograma."
-                    ])->withInput();
-                }
+                $mensajeError = ($ultimo && $ultimo->estado === 'observado')
+                    ? "El plazo límite fijado en el cronograma para la actividad '{$act->titulo}' concluyó el {$act->fecha_fin->format('d/m/Y')}. El período para presentar mejoras o subsanaciones ha vencido."
+                    : "El plazo de entrega para la actividad '{$act->titulo}' concluyó el {$act->fecha_fin->format('d/m/Y')}. No es posible enviar el informe porque el plazo ha finalizado.";
+
+                return back()->withErrors(['actividad_id' => $mensajeError])->withInput();
             }
 
             if ($ultimo) {
@@ -1030,11 +1092,14 @@ class SeguimientoController extends Controller
                 $version = $ultimo->version + 1;
             }
         } else {
+            $pIni = $request->filled('periodo_inicio') ? \Carbon\Carbon::parse($request->periodo_inicio)->startOfDay() : now()->startOfDay();
+            $pFin = $request->filled('periodo_fin') ? \Carbon\Carbon::parse($request->periodo_fin)->startOfDay() : now()->startOfDay();
+
             // Evitar informes duplicados para el mismo periodo y título si no tiene actividad
             $duplicado = InformeAvance::where('practica_id', $practica->id)
                 ->whereNull('actividad_id')
                 ->where('titulo', trim($request->titulo))
-                ->where('periodo_inicio', $request->periodo_inicio)
+                ->where('periodo_inicio', $pIni->toDateString())
                 ->exists();
 
             if ($duplicado) {
@@ -1049,8 +1114,8 @@ class SeguimientoController extends Controller
             'actividad_id' => $actividadId,
             'version' => $version,
             'titulo' => trim($request->titulo) . ($version > 1 ? " (v{$version})" : ""),
-            'periodo_inicio' => $request->periodo_inicio,
-            'periodo_fin' => $request->periodo_fin,
+            'periodo_inicio' => $pIni->toDateString(),
+            'periodo_fin' => $pFin->toDateString(),
             'resumen' => trim($request->resumen),
             'ruta_privada' => $path,
             'estado' => 'enviado',
@@ -1109,24 +1174,35 @@ class SeguimientoController extends Controller
 
         $request->validate([
             'estado' => 'required|in:revisado,observado',
+            'calificacion' => 'nullable|numeric|between:0,100',
             'observacion' => $request->estado === 'observado' ? 'required|string|min:5|max:1000' : 'nullable|string|max:1000',
         ], [
-            'observacion.required' => 'Debe ingresar una observación detallada al marcar un informe como observado.',
+            'observacion.required' => 'Debe ingresar una observación detallada al marcar un informe como observado para que el estudiante pueda corregirlo y subsanarlo.',
             'observacion.min' => 'La observación debe contener al menos 5 caracteres.',
+            'calificacion.between' => 'La calificación debe ser un valor numérico entre 0 y 100 puntos.',
         ]);
 
         $tutor = $user->tutor ?? $informe->practica->tutor ?? DocenteTutor::first();
 
-        $informe->update([
+        $datosActualizar = [
             'estado' => $request->estado,
             'revisado_por_tutor_id' => $tutor?->id,
             'fecha_revision' => now(),
             'observaciones_tutor' => $request->observacion,
-        ]);
+        ];
+        if ($request->filled('calificacion')) {
+            $datosActualizar['calificacion'] = $request->calificacion;
+        }
+
+        $informe->update($datosActualizar);
 
         if ($request->estado === 'observado' && $informe->actividad) {
             $informe->actividad->update([
                 'observacion' => "Informe con observaciones del tutor: " . \Illuminate\Support\Str::limit($request->observacion, 150),
+            ]);
+        } elseif ($request->estado === 'revisado' && $informe->actividad) {
+            $informe->actividad->update([
+                'observacion' => "Informe v{$informe->version} revisado y aprobado conforme por el docente tutor.",
             ]);
         }
 
@@ -1215,6 +1291,14 @@ class SeguimientoController extends Controller
 
             $rubrica = RubricaActividad::with('criterios', 'actividad')->findOrFail($request->rubrica_id);
             $actividad = $rubrica->actividad;
+
+            // Regla estricta UPDS: Cada actividad solo admite una única revisión evaluativa por el docente tutor
+            $yaEvaluada = ($actividad->estado === 'completada') || ($actividad->rubrica && $actividad->rubrica->criterios()->whereHas('evaluaciones')->exists());
+            if ($yaEvaluada) {
+                return back()->withErrors([
+                    'evaluacion' => "La actividad '{$actividad->titulo}' ya fue evaluada previamente. Por reglamento institucional, cada actividad cuenta con una única revisión evaluativa permitida."
+                ])->withInput();
+            }
 
             $notaTotal = 0;
             foreach ($rubrica->criterios as $criterio) {
